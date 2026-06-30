@@ -1149,17 +1149,34 @@ function renderNutriResumo(){
   }
   card.innerHTML=h;
 }
+function itemMacros(m){
+  let kcal=0,p=0,c=0,g=0;
+  (m.items||[]).forEach(it=>{kcal+=it.kcal100*it.qtd_g/100;p+=it.proteina100*it.qtd_g/100;c+=it.carbo100*it.qtd_g/100;g+=it.gordura100*it.qtd_g/100;});
+  return {kcal,p,c,g};
+}
+function planDayTotals(meals){
+  const t={kcal:0,p:0,c:0,g:0};
+  (meals||[]).forEach(m=>{const mt=itemMacros(m);t.kcal+=mt.kcal;t.p+=mt.p;t.c+=mt.c;t.g+=mt.g;});
+  return t;
+}
 function renderPlano(){
   const meals=(N.meal_plan&&N.meal_plan.meals)||[];
   const el=document.getElementById('planoList');
   if(!meals.length){el.innerHTML='<div class="empty">Nenhum plano alimentar cadastrado ainda. Fale com seu personal.</div>';return;}
-  el.innerHTML=meals.map(m=>{
-    let kcal=0,p=0,c=0,g=0;
-    (m.items||[]).forEach(it=>{kcal+=it.kcal100*it.qtd_g/100;p+=it.proteina100*it.qtd_g/100;c+=it.carbo100*it.qtd_g/100;g+=it.gordura100*it.qtd_g/100;});
+  const t=planDayTotals(meals);
+  const a=N.anamnese||{};
+  let h=`<div class="card">
+    <div class="eyebrow" style="margin-bottom:8px">Total do dia (plano)</div>
+    <div class="micro" style="font-size:14px"><strong>${Math.round(t.kcal)} kcal</strong>${a.kcal_alvo?' de '+a.kcal_alvo+' kcal alvo':''}</div>
+    <div class="micro" style="margin-top:4px">Proteína <strong>${t.p.toFixed(1)}g</strong>${a.proteina_g?'/'+a.proteina_g+'g':''} · Carboidrato <strong>${t.c.toFixed(1)}g</strong>${a.carbo_g?'/'+a.carbo_g+'g':''} · Gordura <strong>${t.g.toFixed(1)}g</strong>${a.gordura_g?'/'+a.gordura_g+'g':''}</div>
+  </div>`;
+  h+=meals.map(m=>{
+    const mt=itemMacros(m);
     const items=(m.items||[]).map(it=>`<div class="fooditem"><div class="fi-nm">${it.nome}</div><div class="fi-meta">${it.qtd_g}g · ${Math.round(it.kcal100*it.qtd_g/100)} kcal</div></div>`).join('') || '<div class="empty" style="padding:8px 0">Sem itens.</div>';
-    return `<div class="mealcard"><div class="mhead"><h3>${m.nome}${m.horario?' · '+m.horario:''}</h3><span class="mkcal">${Math.round(kcal)} kcal</span></div>${items}
-      <div class="micro" style="margin-top:6px">P${p.toFixed(1)}g · C${c.toFixed(1)}g · G${g.toFixed(1)}g</div></div>`;
+    return `<div class="mealcard"><div class="mhead"><h3>${m.nome}${m.horario?' · '+m.horario:''}</h3><span class="mkcal">${Math.round(mt.kcal)} kcal</span></div>${items}
+      <div class="micro" style="margin-top:6px">P${mt.p.toFixed(1)}g · C${mt.c.toFixed(1)}g · G${mt.g.toFixed(1)}g</div></div>`;
   }).join('');
+  el.innerHTML=h;
 }
 let flSelectedFood=null;
 function searchFoods(q){
@@ -1603,7 +1620,17 @@ function mealTotals(m){
 }
 function renderMealsEdit(){
   const meals = pNutri.meal_plan.meals || (pNutri.meal_plan.meals=[]);
-  document.getElementById('planMealsEdit').innerHTML = meals.length ? meals.map((m,mi)=>{
+  const t=planDayTotals(meals);
+  const a=pNutri.anamnese||{};
+  let totalHtml='';
+  if (meals.length) {
+    totalHtml = `<div class="card" style="background:var(--nutri-soft);box-shadow:none;border:0">
+      <div class="eyebrow" style="margin-bottom:8px">Total do dia (plano)</div>
+      <div class="micro" style="font-size:14px"><strong>${Math.round(t.kcal)} kcal</strong>${a.kcal_alvo?' de '+a.kcal_alvo+' kcal alvo':''}</div>
+      <div class="micro" style="margin-top:4px">Proteína <strong>${t.p.toFixed(1)}g</strong>${a.proteina_g?'/'+a.proteina_g+'g':''} · Carboidrato <strong>${t.c.toFixed(1)}g</strong>${a.carbo_g?'/'+a.carbo_g+'g':''} · Gordura <strong>${t.g.toFixed(1)}g</strong>${a.gordura_g?'/'+a.gordura_g+'g':''}</div>
+    </div>`;
+  }
+  document.getElementById('planMealsEdit').innerHTML = totalHtml + (meals.length ? meals.map((m,mi)=>{
     const tot=mealTotals(m);
     return `<div class="mealcard">
       <div class="mhead">
@@ -1618,7 +1645,7 @@ function renderMealsEdit(){
       </div>
       <button class="rmx" style="width:auto;padding:6px 12px;margin-top:10px;font-size:12px" onclick="removeMeal(${mi})">Remover refeição</button>
     </div>`;
-  }).join('') : '<div class="empty">Nenhuma refeição ainda.</div>';
+  }).join('') : '<div class="empty">Nenhuma refeição ainda.</div>');
 }
 function renderMealItems(mi,m){
   return (m.items||[]).map((it,ii)=>`<div class="fooditem">
