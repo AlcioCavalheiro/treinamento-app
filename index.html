@@ -335,10 +335,17 @@
             <div class="field"><label>Pescoço</label><input type="number" id="avPescoco" inputmode="decimal"></div>
           </div>
           <div class="grid2">
-            <div class="field"><label>Braço</label><input type="number" id="avBraco" inputmode="decimal"></div>
-            <div class="field"><label>Coxa</label><input type="number" id="avCoxaCirc" inputmode="decimal"></div>
+            <div class="field"><label>Braço direito</label><input type="number" id="avBracoD" inputmode="decimal"></div>
+            <div class="field"><label>Braço esquerdo</label><input type="number" id="avBracoE" inputmode="decimal"></div>
           </div>
-          <div class="field"><label>Panturrilha</label><input type="number" id="avPanturrilha" inputmode="decimal"></div>
+          <div class="grid2">
+            <div class="field"><label>Coxa direita</label><input type="number" id="avCoxaD" inputmode="decimal"></div>
+            <div class="field"><label>Coxa esquerda</label><input type="number" id="avCoxaE" inputmode="decimal"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Panturrilha direita</label><input type="number" id="avPanturrilhaD" inputmode="decimal"></div>
+            <div class="field"><label>Panturrilha esquerda</label><input type="number" id="avPanturrilhaE" inputmode="decimal"></div>
+          </div>
 
           <div class="eyebrow" style="margin:14px 0 8px">Bioimpedância (opcional)</div>
           <div class="grid2">
@@ -1512,7 +1519,8 @@ async function salvarAvaliacao(){
   entry.densidade = dens!=null ? +dens.toFixed(4) : null;
   entry.bf_pct = bf!=null ? +bf.toFixed(1) : null;
 
-  const circ={cintura:gv('avCintura'),quadril:gv('avQuadril'),abdomen:gv('avAbdomen'),pescoco:gv('avPescoco'),braco:gv('avBraco'),coxa:gv('avCoxaCirc'),panturrilha:gv('avPanturrilha')};
+  const circ={cintura:gv('avCintura'),quadril:gv('avQuadril'),abdomen:gv('avAbdomen'),pescoco:gv('avPescoco'),
+    braco_d:gv('avBracoD'),braco_e:gv('avBracoE'),coxa_d:gv('avCoxaD'),coxa_e:gv('avCoxaE'),panturrilha_d:gv('avPanturrilhaD'),panturrilha_e:gv('avPanturrilhaE')};
   if (Object.values(circ).some(v=>v!=null)) entry.circunferencias=circ;
 
   const bio={gordura_pct:gv('avBioGordura'),agua_pct:gv('avBioAgua'),massa_magra:gv('avBioMagra'),massa_muscular:gv('avBioMuscular'),massa_ossea:gv('avBioOssea'),tmb:gv('avBioTmb')};
