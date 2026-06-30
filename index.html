@@ -614,7 +614,7 @@ let FOODS=[];
 async function loadFoods(){
   if (FOODS.length) return;
   const { data, error } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura').order('nome');
-  if (!error) FOODS = data || [];
+  if (!error) FOODS = (data || []).map(f=>({...f, proteina:f.proteina||0, carbo:f.carbo||0, gordura:f.gordura||0}));
 }
 function normStr(s){ return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 
