@@ -311,6 +311,44 @@
             <div class="field"><label>Gordura (g)</label><input type="number" id="anGord" inputmode="numeric" oninput="setAnam('gordura_g',this.value)"></div>
           </div>
         </div>
+
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:4px">Dobras cutâneas</div>
+          <div class="micro" style="margin-bottom:10px">Protocolo Pollock 7 dobras (mm). Preencha as 7 e calcule o % de gordura estimado.</div>
+          <div class="grid2">
+            <div class="field"><label>Tríceps</label><input type="number" id="dTricep" inputmode="decimal" oninput="setDobra('tricep',this.value)"></div>
+            <div class="field"><label>Subescapular</label><input type="number" id="dSubesc" inputmode="decimal" oninput="setDobra('subescapular',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Axilar média</label><input type="number" id="dAxilar" inputmode="decimal" oninput="setDobra('axilar',this.value)"></div>
+            <div class="field"><label>Peitoral/torácica</label><input type="number" id="dPeitoral" inputmode="decimal" oninput="setDobra('peitoral',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Supra-ilíaca</label><input type="number" id="dSuprailiaca" inputmode="decimal" oninput="setDobra('suprailiaca',this.value)"></div>
+            <div class="field"><label>Abdominal</label><input type="number" id="dAbdominal" inputmode="decimal" oninput="setDobra('abdominal',this.value)"></div>
+          </div>
+          <div class="field"><label>Coxa</label><input type="number" id="dCoxa" inputmode="decimal" oninput="setDobra('coxa',this.value)"></div>
+          <button class="addx" onclick="calcularDobras()">Calcular % de gordura</button>
+          <div class="micro" id="dobrasResultado" style="margin-top:8px"></div>
+        </div>
+
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:4px">Bioimpedância</div>
+          <div class="micro" style="margin-bottom:10px">Valores lidos direto do aparelho de bioimpedância.</div>
+          <div class="grid2">
+            <div class="field"><label>% Gordura</label><input type="number" id="bGordura" inputmode="decimal" oninput="setBio('gordura_pct',this.value)"></div>
+            <div class="field"><label>% Água corporal</label><input type="number" id="bAgua" inputmode="decimal" oninput="setBio('agua_pct',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Massa magra (kg)</label><input type="number" id="bMagra" inputmode="decimal" oninput="setBio('massa_magra',this.value)"></div>
+            <div class="field"><label>Massa muscular (kg)</label><input type="number" id="bMuscular" inputmode="decimal" oninput="setBio('massa_muscular',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Massa óssea (kg)</label><input type="number" id="bOssea" inputmode="decimal" oninput="setBio('massa_ossea',this.value)"></div>
+            <div class="field"><label>TMB do aparelho (kcal)</label><input type="number" id="bTmb" inputmode="numeric" oninput="setBio('tmb',this.value)"></div>
+          </div>
+        </div>
+
         <div class="card">
           <div class="eyebrow" style="margin-bottom:10px">Plano alimentar</div>
           <div id="planMealsEdit"></div>
@@ -1077,9 +1115,15 @@ function renderNutriResumo(){
   const card=document.getElementById('nrAnamCard');
   if(!a.peso){ card.innerHTML='<div class="empty">Seu personal ainda não preencheu sua anamnese.</div>'; return; }
   const imc=a.altura?(a.peso/Math.pow(a.altura/100,2)).toFixed(1):'–';
-  card.innerHTML=`<div class="eyebrow" style="margin-bottom:8px">Anamnese</div>
+  let h=`<div class="eyebrow" style="margin-bottom:8px">Anamnese</div>
     <div class="micro">Peso: <strong>${a.peso} kg</strong> · Altura: <strong>${a.altura||'–'} cm</strong> · IMC: <strong>${imc}</strong></div>
     <div class="micro" style="margin-top:4px">TMB: <strong>${a.bmr?Math.round(a.bmr):'–'} kcal</strong> · Gasto total estimado: <strong>${a.tdee?Math.round(a.tdee):'–'} kcal</strong></div>`;
+  if (a.dobras && a.dobras.bf_pct) h+=`<div class="micro" style="margin-top:4px">% Gordura (dobras cutâneas): <strong>${a.dobras.bf_pct}%</strong></div>`;
+  if (a.bioimpedancia && (a.bioimpedancia.gordura_pct || a.bioimpedancia.massa_magra)) {
+    const b=a.bioimpedancia;
+    h+=`<div class="micro" style="margin-top:4px">Bioimpedância: ${b.gordura_pct?'<strong>'+b.gordura_pct+'%</strong> gordura':''}${b.massa_magra?' · <strong>'+b.massa_magra+' kg</strong> massa magra':''}${b.agua_pct?' · <strong>'+b.agua_pct+'%</strong> água':''}</div>`;
+  }
+  card.innerHTML=h;
 }
 function renderPlano(){
   const meals=(N.meal_plan&&N.meal_plan.meals)||[];
@@ -1375,6 +1419,35 @@ function calcularMetas(){
   document.getElementById('anamResultado').innerHTML=`TMB: <strong>${a.bmr} kcal</strong> · Gasto total: <strong>${a.tdee} kcal</strong> · IMC: <strong>${imc}</strong>`;
   toast('Metas calculadas ✓');
 }
+const DOBRA_FIELDS=['tricep','subescapular','axilar','peitoral','suprailiaca','abdominal','coxa'];
+function setDobra(field,v){
+  if (!pNutri.anamnese) pNutri.anamnese={};
+  if (!pNutri.anamnese.dobras) pNutri.anamnese.dobras={};
+  pNutri.anamnese.dobras[field] = v===''?null:+v;
+}
+function calcularDobras(){
+  const a=pNutri.anamnese||{};
+  const d=a.dobras||{};
+  const idade=a.idade, sexo=a.sexo||'M';
+  if (!idade) { toast('Preencha a idade na anamnese'); return; }
+  const vals=DOBRA_FIELDS.map(f=>+d[f]||0);
+  if (vals.some(v=>!v)) { toast('Preencha as 7 dobras'); return; }
+  const soma=vals.reduce((s,v)=>s+v,0);
+  const dens = sexo==='F'
+    ? 1.097 - 0.00046971*soma + 0.00000056*soma*soma - 0.00012828*idade
+    : 1.112 - 0.00043499*soma + 0.00000055*soma*soma - 0.00028826*idade;
+  const bf = (495/dens) - 450;
+  d.soma=soma; d.densidade=+dens.toFixed(4); d.bf_pct=+bf.toFixed(1);
+  a.dobras=d;
+  pNutri.anamnese=a;
+  document.getElementById('dobrasResultado').innerHTML=`Soma das 7 dobras: <strong>${soma} mm</strong> · Densidade corporal: <strong>${d.densidade}</strong> · % Gordura estimado: <strong>${d.bf_pct}%</strong>`;
+  toast('Calculado ✓');
+}
+function setBio(field,v){
+  if (!pNutri.anamnese) pNutri.anamnese={};
+  if (!pNutri.anamnese.bioimpedancia) pNutri.anamnese.bioimpedancia={};
+  pNutri.anamnese.bioimpedancia[field] = v===''?null:+v;
+}
 function renderNutritionEditor(){
   const a=pNutri.anamnese||{};
   document.getElementById('anPeso').value=a.peso||'';
@@ -1389,6 +1462,22 @@ function renderNutritionEditor(){
   document.getElementById('anCarb').value=a.carbo_g||'';
   document.getElementById('anGord').value=a.gordura_g||'';
   document.getElementById('anamResultado').innerHTML = a.bmr ? `TMB: <strong>${a.bmr} kcal</strong> · Gasto total: <strong>${a.tdee} kcal</strong>` : '';
+  const d=a.dobras||{};
+  document.getElementById('dTricep').value=d.tricep||'';
+  document.getElementById('dSubesc').value=d.subescapular||'';
+  document.getElementById('dAxilar').value=d.axilar||'';
+  document.getElementById('dPeitoral').value=d.peitoral||'';
+  document.getElementById('dSuprailiaca').value=d.suprailiaca||'';
+  document.getElementById('dAbdominal').value=d.abdominal||'';
+  document.getElementById('dCoxa').value=d.coxa||'';
+  document.getElementById('dobrasResultado').innerHTML = d.bf_pct ? `Soma das 7 dobras: <strong>${d.soma} mm</strong> · Densidade corporal: <strong>${d.densidade}</strong> · % Gordura estimado: <strong>${d.bf_pct}%</strong>` : '';
+  const b=a.bioimpedancia||{};
+  document.getElementById('bGordura').value=b.gordura_pct||'';
+  document.getElementById('bAgua').value=b.agua_pct||'';
+  document.getElementById('bMagra').value=b.massa_magra||'';
+  document.getElementById('bMuscular').value=b.massa_muscular||'';
+  document.getElementById('bOssea').value=b.massa_ossea||'';
+  document.getElementById('bTmb').value=b.tmb||'';
   renderMealsEdit();
 }
 function mealTotals(m){
