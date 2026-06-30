@@ -11,6 +11,7 @@ App de acompanhamento de treino com login (cada usuário só vê os próprios da
    - [`foods_seed.sql`](foods_seed.sql) (popula o banco com a Tabela TACO — 591 alimentos brasileiros)
    - [`nutrition_schema_v2.sql`](nutrition_schema_v2.sql) (adiciona medidas caseiras, origem do alimento e cadastro de alimentos personalizados)
    - [`tbca_seed.sql`](tbca_seed.sql) (popula o banco com a Tabela TBCA/USP — ~5.600 alimentos brasileiros; arquivo grande, pode demorar para rodar)
+   - [`usda_seed.sql`](usda_seed.sql) (popula o banco com a base USDA SR Legacy — ~7.800 alimentos; nomes traduzidos automaticamente do inglês, alguns itens de marca/pratos compostos podem ficar parcialmente em inglês; arquivo grande, pode demorar para rodar)
 4. Vá em **Project Settings > API** e copie:
    - **Project URL**
    - **anon public key**
