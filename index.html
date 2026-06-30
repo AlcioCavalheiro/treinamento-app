@@ -225,6 +225,11 @@
     <div class="exhead" style="margin-top:4px"><h2>Musculação</h2></div>
     <div class="chips" id="dayChips"></div>
     <div id="muscBody"></div>
+    <div class="card">
+      <div class="eyebrow" style="margin-bottom:10px">Observações do treino de hoje</div>
+      <div class="field"><textarea id="muscObsTxt" rows="3" placeholder="Como foi o treino, dor, carga, energia..."></textarea></div>
+      <button class="btn btn-check" onclick="saveMuscObs()">Salvar observação</button>
+    </div>
   </section>
 
   <!-- CORRIDA -->
@@ -327,7 +332,7 @@ let currentUser = null;
 /* ---------- storage (Supabase Postgres, 1 linha por usuário) ---------- */
 const KEY2COL = {
   'training-loads':'loads','training-checks':'checks','training-recovery':'recovery',
-  'training-runs':'runs','training-tiros':'tiros'
+  'training-runs':'runs','training-tiros':'tiros','training-muscobs':'muscobs'
 };
 let rowCache = null;
 
@@ -335,10 +340,11 @@ async function fetchRow(){
   const { data, error } = await sb.from('training_data').select('*').eq('user_id', currentUser.id).maybeSingle();
   if (error) { console.error(error); return null; }
   if (!data) {
-    const def = { user_id: currentUser.id, loads:{}, checks:{}, recovery:{}, runs:[], tiros:[] };
+    const def = { user_id: currentUser.id, loads:{}, checks:{}, recovery:{}, runs:[], tiros:[], muscobs:{} };
     await sb.from('training_data').insert(def);
     return def;
   }
+  if (data.muscobs == null) data.muscobs = {};
   return data;
 }
 const store = {
@@ -495,7 +501,7 @@ const MOB=[
 ];
 
 /* ---------- state ---------- */
-let S={loads:{},checks:{},recovery:{},runs:[],tiros:[]};
+let S={loads:{},checks:{},recovery:{},runs:[],tiros:[],muscobs:{}};
 let selDay='seg', runStars=0;
 
 function isoWeek(d=new Date()){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));const wk=Math.ceil((((t-ys)/864e5)+1)/7);return t.getUTCFullYear()+'-W'+String(wk).padStart(2,'0');}
@@ -510,6 +516,7 @@ async function boot(){
   S.recovery=await load('training-recovery',{});
   S.runs=await load('training-runs',[]);
   S.tiros=await load('training-tiros',[]);
+  S.muscobs=await load('training-muscobs',{});
   const dow=new Date().getDay();
   selDay=SCHED[dow]&&SCHED[dow].musc?SCHED[dow].musc:'seg';
   const hr=new Date().getHours();
@@ -520,7 +527,7 @@ async function boot(){
   document.getElementById('recupDate').textContent=new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
   renderAll();
 }
-function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRecovery();renderRuns();renderTiros();}
+function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRecovery();renderRuns();renderTiros();renderMuscObs();}
 
 /* ---------- week ring + lanes ---------- */
 function weekSlots(){const s=[];for(let dn=1;dn<=6;dn++){const c=SCHED[dn];if(c.musc)s.push(dn+'-musc');if(c.run)s.push(dn+'-run');if(c.swim)s.push(dn+'-swim');}return s;}
@@ -613,6 +620,15 @@ function setLoad(inp){
   if(v)S.loads[id][wk]=v;else delete S.loads[id][wk];
   inp.classList.toggle('filled',!!v);
   save('training-loads',S.loads);
+}
+function renderMuscObs(){
+  document.getElementById('muscObsTxt').value=S.muscobs[todayKey()]||'';
+}
+function saveMuscObs(){
+  const v=document.getElementById('muscObsTxt').value.trim();
+  if(v)S.muscobs[todayKey()]=v;else delete S.muscobs[todayKey()];
+  save('training-muscobs',S.muscobs);
+  toast('Observação salva ✓');
 }
 
 /* ---------- RECUPERAÇÃO ---------- */

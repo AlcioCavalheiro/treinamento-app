@@ -7,8 +7,12 @@ create table if not exists public.training_data (
   recovery jsonb not null default '{}'::jsonb,
   runs jsonb not null default '[]'::jsonb,
   tiros jsonb not null default '[]'::jsonb,
+  muscobs jsonb not null default '{}'::jsonb,
   updated_at timestamptz not null default now()
 );
+
+-- Se a tabela já existia antes (sem a coluna muscobs), rode também:
+alter table public.training_data add column if not exists muscobs jsonb not null default '{}'::jsonb;
 
 alter table public.training_data enable row level security;
 
