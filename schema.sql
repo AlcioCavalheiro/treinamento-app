@@ -17,6 +17,9 @@ alter table public.training_data add column if not exists muscobs jsonb not null
 -- Plano de treino do aluno (montado pelo personal). Null = usa o plano padrão do app.
 alter table public.training_data add column if not exists plan jsonb;
 
+-- Histórico de natação registrado pelo aluno.
+alter table public.training_data add column if not exists swims jsonb not null default '[]'::jsonb;
+
 alter table public.training_data enable row level security;
 
 create policy "Users can view own data"
