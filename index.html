@@ -787,6 +787,33 @@ function toggleCustomForm(){
   const el=document.getElementById('customFoodForm');
   el.classList.toggle('hide');
 }
+function toggleMealCustomForm(mi){
+  const el=document.getElementById('mealCustomForm-'+mi);
+  el.classList.toggle('hide');
+}
+async function addCustomFoodFromMeal(mi){
+  const g=s=>document.getElementById(s+'-'+mi);
+  const nome=(g('mcfNome').value||'').trim();
+  const kcal=+g('mcfKcal').value;
+  const prot=+(g('mcfProt').value||0);
+  const carb=+(g('mcfCarb').value||0);
+  const gord=+(g('mcfGord').value||0);
+  const grupo=(g('mcfGrupo').value||'').trim();
+  if(!nome||!kcal){toast('Preencha nome e kcal');return;}
+  const {data,error}=await sb.from('foods').insert({nome,kcal,proteina:prot,carbo:carb,gordura:gord,grupo:grupo||null,is_custom:true,created_by:currentUser.id,origem:'custom'}).select().single();
+  if(error){toast('Erro ao salvar: '+error.message);return;}
+  FOODS.push({...data,proteina:data.proteina||0,carbo:data.carbo||0,gordura:data.gordura||0,origem:'custom'});
+  FOODS.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  // adiciona direto à refeição
+  if(!pNutri.meal_plan.meals[mi].items) pNutri.meal_plan.meals[mi].items=[];
+  pNutri.meal_plan.meals[mi].items.push({food_id:data.id,nome:data.nome,kcal100:data.kcal,proteina100:data.proteina||0,carbo100:data.carbo||0,gordura100:data.gordura||0,qtd_g:100,medida_gramas:1});
+  g('mcfNome').value=''; g('mcfKcal').value=''; g('mcfProt').value='';
+  g('mcfCarb').value=''; g('mcfGord').value=''; g('mcfGrupo').value='';
+  document.getElementById('mealCustomForm-'+mi).classList.add('hide');
+  renderMealsEdit();
+  scheduleAutoSaveNutrition();
+  toast('Alimento cadastrado e adicionado ✓');
+}
 async function addCustomFood(){
   const nome=(document.getElementById('cfNome').value||'').trim();
   const kcal=+document.getElementById('cfKcal').value;
@@ -1822,6 +1849,21 @@ function renderMealsEdit(){
       <div class="foodsearch">
         <input type="text" placeholder="Buscar alimento para adicionar..." autocomplete="off" oninput="searchMealFood(${mi},this.value)">
         <div id="mealResults-${mi}" class="foodresults hide"></div>
+      </div>
+      <button class="custom-toggle" onclick="toggleMealCustomForm(${mi})">+ Cadastrar alimento não encontrado</button>
+      <div id="mealCustomForm-${mi}" class="custom-form hide">
+        <div class="eyebrow" style="margin-bottom:8px">Novo alimento (por 100g)</div>
+        <div class="field"><label>Nome do alimento</label><input type="text" id="mcfNome-${mi}" placeholder="Ex: Whey protein sabor baunilha"></div>
+        <div class="grid2">
+          <div class="field"><label>Kcal</label><input type="number" id="mcfKcal-${mi}" inputmode="decimal" placeholder="400"></div>
+          <div class="field"><label>Proteína (g)</label><input type="number" id="mcfProt-${mi}" inputmode="decimal" placeholder="80"></div>
+        </div>
+        <div class="grid2">
+          <div class="field"><label>Carboidrato (g)</label><input type="number" id="mcfCarb-${mi}" inputmode="decimal" placeholder="10"></div>
+          <div class="field"><label>Gordura (g)</label><input type="number" id="mcfGord-${mi}" inputmode="decimal" placeholder="5"></div>
+        </div>
+        <div class="field"><label>Grupo / categoria (opcional)</label><input type="text" id="mcfGrupo-${mi}" placeholder="Ex: Suplementos"></div>
+        <button class="btn btn-check" onclick="addCustomFoodFromMeal(${mi})">Salvar e adicionar à refeição</button>
       </div>
       <button class="rmx" style="width:auto;padding:6px 12px;margin-top:10px;font-size:12px" onclick="removeMeal(${mi})">Remover refeição</button>
     </div>`;
