@@ -1,0 +1,26 @@
+# Treino — app online
+
+App de acompanhamento de treino com login (cada usuário só vê os próprios dados) e dados salvos no Supabase (Postgres na nuvem).
+
+## 1. Criar o projeto Supabase (gratuito)
+
+1. Acesse https://supabase.com e crie uma conta/projeto novo.
+2. No painel do projeto, vá em **SQL Editor > New query**, cole o conteúdo de [`schema.sql`](schema.sql) e rode (`Run`).
+3. Vá em **Project Settings > API** e copie:
+   - **Project URL**
+   - **anon public key**
+4. Abra [`config.js`](config.js) e cole esses dois valores no lugar de `COLE_AQUI_...`.
+5. (Opcional, recomendado) Em **Authentication > Providers > Email**, desative "Confirm email" se quiser que o cadastro libere acesso na hora, sem precisar confirmar e-mail.
+
+## 2. Testar localmente
+
+Abra `index.html` direto no navegador (duplo clique) ou sirva a pasta com qualquer servidor estático. Crie uma conta na tela de login e use o app.
+
+## 3. Publicar online (Vercel)
+
+1. Crie um repositório no GitHub com esses arquivos (`index.html`, `config.js`).
+2. Em https://vercel.com, clique **Add New > Project**, importe esse repositório.
+3. Não precisa de build command nem framework — é um site estático. Clique **Deploy**.
+4. Pronto: a Vercel vai gerar uma URL pública (ex: `treino-app.vercel.app`) acessível de qualquer aparelho.
+
+Qualquer atualização que você fizer no `index.html` e enviar (`git push`) para o GitHub republica automaticamente.
