@@ -1791,8 +1791,8 @@ function renderMealsEdit(){
   if (meals.length) {
     totalHtml = `<div class="card" style="background:var(--nutri-soft);box-shadow:none;border:0">
       <div class="eyebrow" style="margin-bottom:8px">Total do dia (plano)</div>
-      <div class="micro" style="font-size:14px"><strong>${Math.round(t.kcal)} kcal</strong>${a.kcal_alvo?' de '+a.kcal_alvo+' kcal alvo':''}</div>
-      <div class="micro" style="margin-top:4px">Proteína <strong>${t.p.toFixed(1)}g</strong>${a.proteina_g?'/'+a.proteina_g+'g':''} · Carboidrato <strong>${t.c.toFixed(1)}g</strong>${a.carbo_g?'/'+a.carbo_g+'g':''} · Gordura <strong>${t.g.toFixed(1)}g</strong>${a.gordura_g?'/'+a.gordura_g+'g':''}</div>
+      <div class="micro" id="planTotalKcalLine" style="font-size:14px"><strong>${Math.round(t.kcal)} kcal</strong>${a.kcal_alvo?' de '+a.kcal_alvo+' kcal alvo':''}</div>
+      <div class="micro" id="planTotalMacroLine" style="margin-top:4px">Proteína <strong>${t.p.toFixed(1)}g</strong>${a.proteina_g?'/'+a.proteina_g+'g':''} · Carboidrato <strong>${t.c.toFixed(1)}g</strong>${a.carbo_g?'/'+a.carbo_g+'g':''} · Gordura <strong>${t.g.toFixed(1)}g</strong>${a.gordura_g?'/'+a.gordura_g+'g':''}</div>
     </div>`;
   }
   document.getElementById('planMealsEdit').innerHTML = totalHtml + (meals.length ? meals.map((m,mi)=>{
@@ -1800,7 +1800,7 @@ function renderMealsEdit(){
     return `<div class="mealcard">
       <div class="mhead">
         <input type="text" value="${m.nome}" placeholder="Nome da refeição" style="border:0;font-size:15px;font-weight:800;font-family:inherit;flex:1;background:transparent;padding:0" oninput="setMealField(${mi},'nome',this.value)">
-        <span class="mkcal">${tot.kcal} kcal</span>
+        <span class="mkcal" id="mealKcal-${mi}">${tot.kcal} kcal</span>
       </div>
       <div class="field" style="margin-bottom:8px"><input type="time" value="${m.horario||''}" oninput="setMealField(${mi},'horario',this.value)"></div>
       <div id="mealItems-${mi}">${renderMealItems(mi,m)}</div>
@@ -1820,20 +1820,21 @@ function renderMealsEdit(){
 }
 function renderMealItems(mi,m){
   return (m.items||[]).map((it,ii)=>`<div class="fooditem">
-    <div><div class="fi-nm">${it.nome}</div><div class="fi-meta">${Math.round(it.kcal100*it.qtd_g/100)} kcal · P${(it.proteina100*it.qtd_g/100).toFixed(1)} C${(it.carbo100*it.qtd_g/100).toFixed(1)} G${(it.gordura100*it.qtd_g/100).toFixed(1)}</div></div>
+    <div><div class="fi-nm">${it.nome}</div><div class="fi-meta" id="mealItemMeta-${mi}-${ii}">${Math.round(it.kcal100*it.qtd_g/100)} kcal · P${(it.proteina100*it.qtd_g/100).toFixed(1)} C${(it.carbo100*it.qtd_g/100).toFixed(1)} G${(it.gordura100*it.qtd_g/100).toFixed(1)}</div></div>
     <div style="display:flex;align-items:center;gap:6px">
       <input type="number" value="${it.qtd_g}" style="width:60px;border:1.5px solid var(--line);border-radius:8px;padding:5px;text-align:center;font-size:12px" oninput="setMealItemQty(${mi},${ii},this.value)">
       <span style="font-size:11px;color:var(--muted)">g</span>
       <button class="rmx" style="width:26px;height:26px" onclick="removeMealItem(${mi},${ii})">×</button>
     </div></div>`).join('');
 }
-function setMealField(mi,field,v){ pNutri.meal_plan.meals[mi][field]=v; }
+function setMealField(mi,field,v){ pNutri.meal_plan.meals[mi][field]=v; scheduleAutoSaveNutrition(); }
 function addMeal(){
   if (!pNutri.meal_plan.meals) pNutri.meal_plan.meals=[];
   pNutri.meal_plan.meals.push({nome:'Nova refeição',horario:'',items:[]});
   renderMealsEdit();
+  scheduleAutoSaveNutrition();
 }
-function removeMeal(mi){ pNutri.meal_plan.meals.splice(mi,1); renderMealsEdit(); }
+function removeMeal(mi){ pNutri.meal_plan.meals.splice(mi,1); renderMealsEdit(); scheduleAutoSaveNutrition(); }
 let mealFoodOrigem='all';
 function setMealFoodOrigem(mi,o){
   mealFoodOrigem=o;
@@ -1863,13 +1864,40 @@ function pickMealFood(mi,foodId){
   if (!pNutri.meal_plan.meals[mi].items) pNutri.meal_plan.meals[mi].items=[];
   pNutri.meal_plan.meals[mi].items.push({food_id:f.id,nome:f.nome,kcal100:f.kcal,proteina100:f.proteina,carbo100:f.carbo,gordura100:f.gordura,qtd_g:100,medida_gramas:1});
   renderMealsEdit();
+  scheduleAutoSaveNutrition();
 }
 function setMealItemQty(mi,ii,v){
-  pNutri.meal_plan.meals[mi].items[ii].qtd_g = +v || 0;
-  renderMealsEdit();
+  const it=pNutri.meal_plan.meals[mi].items[ii];
+  it.qtd_g = +v || 0;
+  updateMealLiveDisplay(mi,ii);
+  scheduleAutoSaveNutrition();
 }
-function removeMealItem(mi,ii){ pNutri.meal_plan.meals[mi].items.splice(ii,1); renderMealsEdit(); }
-async function saveNutritionPlan(){
+function updateMealLiveDisplay(mi,ii){
+  const m=pNutri.meal_plan.meals[mi];
+  const it=m.items[ii];
+  const metaEl=document.getElementById(`mealItemMeta-${mi}-${ii}`);
+  if (metaEl) metaEl.textContent=`${Math.round(it.kcal100*it.qtd_g/100)} kcal · P${(it.proteina100*it.qtd_g/100).toFixed(1)} C${(it.carbo100*it.qtd_g/100).toFixed(1)} G${(it.gordura100*it.qtd_g/100).toFixed(1)}`;
+  const tot=mealTotals(m);
+  const kcalEl=document.getElementById('mealKcal-'+mi);
+  if (kcalEl) kcalEl.textContent=tot.kcal+' kcal';
+  updatePlanTotalDisplay();
+}
+function updatePlanTotalDisplay(){
+  const meals=pNutri.meal_plan.meals||[];
+  const t=planDayTotals(meals);
+  const a=pNutri.anamnese||{};
+  const kcalLine=document.getElementById('planTotalKcalLine');
+  if (kcalLine) kcalLine.innerHTML=`<strong>${Math.round(t.kcal)} kcal</strong>${a.kcal_alvo?' de '+a.kcal_alvo+' kcal alvo':''}`;
+  const macroLine=document.getElementById('planTotalMacroLine');
+  if (macroLine) macroLine.innerHTML=`Proteína <strong>${t.p.toFixed(1)}g</strong>${a.proteina_g?'/'+a.proteina_g+'g':''} · Carboidrato <strong>${t.c.toFixed(1)}g</strong>${a.carbo_g?'/'+a.carbo_g+'g':''} · Gordura <strong>${t.g.toFixed(1)}g</strong>${a.gordura_g?'/'+a.gordura_g+'g':''}`;
+}
+function removeMealItem(mi,ii){ pNutri.meal_plan.meals[mi].items.splice(ii,1); renderMealsEdit(); scheduleAutoSaveNutrition(); }
+let nutriSaveTimer=null;
+function scheduleAutoSaveNutrition(){
+  clearTimeout(nutriSaveTimer);
+  nutriSaveTimer=setTimeout(()=>{ saveNutritionPlan(true); }, 1200);
+}
+async function saveNutritionPlan(silent){
   if (!pCurrentAluno) return;
   const uid = pCurrentAluno.id;
   const payload = { anamnese: pNutri.anamnese, meal_plan: pNutri.meal_plan };
@@ -1877,8 +1905,9 @@ async function saveNutritionPlan(){
     await sb.from('nutrition_data').update({ ...payload, updated_at:new Date().toISOString() }).eq('user_id', uid);
   } else {
     await sb.from('nutrition_data').insert({ user_id: uid, ...payload });
+    pNutriRow = { user_id: uid };
   }
-  toast('Plano alimentar salvo ✓');
+  if (!silent) toast('Plano alimentar salvo ✓');
 }
 
 /* ---------- nav ---------- */
