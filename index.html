@@ -719,6 +719,7 @@ async function onAuthed(user){
 function onSignedOut(){
   currentUser = null;
   rowCache = null;
+  localStorage.removeItem('personal_last_aluno');
   document.getElementById('authScreen').classList.remove('hide');
   document.getElementById('signOutBtn').classList.add('hide');
   document.getElementById('personalScreen').classList.add('hide');
@@ -1272,21 +1273,32 @@ function renderWeightSpark(){
 let pAlunos=[], pCurrentAluno=null, pCurrentRow=null, pPlan=null;
 let pNutriRow=null, pNutri=null;
 
-async function openAlunoList(){
+async function openAlunoList(opts){
+  const keepSelection = opts && opts.keepSelection;
+  await loadFoods();
+  const { data, error } = await sb.from('profiles').select('id,email').eq('role','aluno').order('email');
+  pAlunos = data || [];
+
+  // Se o personal já estava editando um aluno (mesmo antes de um refresh/troca de aba),
+  // só volta pra lista se ele pedir explicitamente (backToList limpa isso).
+  const lastId = !error && keepSelection !== false ? localStorage.getItem('personal_last_aluno') : null;
+  if (lastId && pAlunos.find(a=>a.id===lastId)) {
+    await selectAluno(lastId, pAlunos.find(a=>a.id===lastId).email);
+    return;
+  }
+
   document.getElementById('pEditView').classList.add('hide');
   document.getElementById('pListView').classList.remove('hide');
   document.getElementById('pTitle').textContent='Alunos';
   document.getElementById('pSub').textContent='Toque em um aluno para editar o treino';
-  await loadFoods();
-  const { data, error } = await sb.from('profiles').select('id,email').eq('role','aluno').order('email');
   const card = document.getElementById('alunoListCard');
   if (error) { card.innerHTML='<div class="empty">Erro ao carregar alunos.</div>'; return; }
-  pAlunos = data || [];
   if (!pAlunos.length) { card.innerHTML='<div class="empty">Nenhum aluno cadastrado ainda.</div>'; return; }
   card.innerHTML = pAlunos.map(a=>`<div class="alunorow" onclick="selectAluno('${a.id}')"><div class="nm">${a.email||'(sem e-mail)'}</div><div class="arrow">›</div></div>`).join('');
 }
 async function selectAluno(id){
   pCurrentAluno = pAlunos.find(a=>a.id===id);
+  localStorage.setItem('personal_last_aluno', id);
   const { data, error } = await sb.from('training_data').select('*').eq('user_id', id).maybeSingle();
   pCurrentRow = data || null;
   pPlan = (data && data.plan) ? JSON.parse(JSON.stringify(data.plan)) : { week:{}, ombro:null, mob:null };
@@ -1304,7 +1316,10 @@ async function selectAluno(id){
   goPersonalTab('treino');
   window.scrollTo({top:0});
 }
-function backToList(){ openAlunoList(); }
+function backToList(){
+  localStorage.removeItem('personal_last_aluno');
+  openAlunoList({keepSelection:false});
+}
 function goPersonalTab(tab){
   document.getElementById('pTab-treino').classList.toggle('hide',tab!=='treino');
   document.getElementById('pTab-nutricao').classList.toggle('hide',tab!=='nutricao');
