@@ -230,17 +230,20 @@
     </div>
     <div id="pEditView" class="hide">
       <div class="backrow"><button class="backbtn" onclick="backToList()">‹ Alunos</button></div>
+      <div class="micro" style="margin-bottom:10px">Marque o que esse aluno treina em cada dia. Deixe desmarcado se não tiver treino naquele dia.</div>
+      <div id="planWeekEdit"></div>
       <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Musculação — dias e exercícios</div>
-        <div id="planMuscEdit"></div>
+        <div class="eyebrow" style="margin-bottom:10px">Recuperação — Ombro</div>
+        <div id="planOmbroEdit"></div>
+        <button class="addx" onclick="addOmbro()">+ exercício</button>
       </div>
       <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Corrida — treinos</div>
-        <div id="planRunsEdit"></div>
-      </div>
-      <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Natação</div>
-        <div id="planSwimEdit"></div>
+        <div class="eyebrow" style="margin-bottom:10px">Recuperação — Mobilidade / Alongamento</div>
+        <div id="planMobEdit"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="addx" onclick="addMobCat()">+ categoria</button>
+          <button class="addx" onclick="addMobEx()">+ exercício</button>
+        </div>
       </div>
       <button class="btn btn-check" style="width:100%" onclick="savePlan()">Salvar plano do aluno</button>
     </div>
@@ -504,26 +507,17 @@ sb.auth.onAuthStateChange((event, session) => {
 });
 
 /* ---------- data ---------- */
-const DEFAULT_RUNS={
-  t1:{name:'Treino 1 — Rodagem',detail:'3 km leve · 3 km médio · 2 km leve',km:8,hard:false},
-  t2:{name:'Treino 2 — Tiros',detail:'2 km aquec · 5×1 km forte · 2 min descanso',km:7,hard:true},
-  t3:{name:'Treino 3 — Longão',detail:'10 km leve mantendo o pace',km:10,hard:false},
-};
-let RUNS=DEFAULT_RUNS;
-const DEFAULT_SWIM={name:'Natação',detail:'Recuperação ativa, nado leve contínuo',km:1};
-let SWIM=DEFAULT_SWIM;
-const SCHED={
-  0:{label:'Domingo',rest:true},
-  1:{label:'Segunda',musc:'seg'},
-  2:{label:'Terça',musc:'ter',run:'t1'},
-  3:{label:'Quarta',musc:'qua',swim:true},
-  4:{label:'Quinta',musc:'qui',run:'t2'},
-  5:{label:'Sexta',musc:'sex',swim:true},
-  6:{label:'Sábado',run:'t3'},
-};
-const DAYABBR={1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb',0:'Dom'};
-const DEFAULT_MUSC={
-  seg:{title:'Superior Empurrar',ex:[
+const DAYABBR={0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'};
+const DOW_LABEL={0:'Domingo',1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta',6:'Sábado'};
+const DOW_ORDER=[0,1,2,3,4,5,6];
+
+const BLANK_MUSC={title:'Treino',ex:[]};
+const BLANK_RUN={name:'Corrida',detail:'',km:0,hard:false};
+const BLANK_SWIM={name:'Natação',detail:'',km:0};
+
+const DEFAULT_WEEK={
+  0:{musc:null,run:null,swim:null},
+  1:{musc:{title:'Superior Empurrar',ex:[
     ['supino-reto','Supino reto barra','4 × 6-8',0],
     ['desenv-halt','Desenvolvimento halteres','3 × 8-10',0],
     ['supino-incl','Supino inclinado halteres','3 × 8-10',0],
@@ -531,8 +525,8 @@ const DEFAULT_MUSC={
     ['tri-corda','Tríceps corda','3 × 10-12',0],
     ['punho-flex','Rosca de punho — flexora','3 × 15','Antebraço'],
     ['punho-ext','Rosca de punho inversa','3 × 15','Antebraço'],
-  ]},
-  ter:{title:'Superior Puxar',ex:[
+  ]},run:null,swim:null},
+  2:{musc:{title:'Superior Puxar',ex:[
     ['barra-fixa','Barra fixa / Puxada alta','4 × 6-8',0],
     ['remada-curv','Remada curvada barra','3 × 8-10',0],
     ['remada-baixa','Remada baixa','3 × 10-12',0],
@@ -541,39 +535,34 @@ const DEFAULT_MUSC={
     ['shrug','Encolhimento / shrug halteres','4 × 12-15','Trapézio'],
     ['farmer','Farmer walk','3 × 30-40 m','Antebraço'],
     ['dead-hang','Pendura na barra / dead hang','3 × máx','Antebraço'],
-  ]},
-  qua:{title:'Inferior A · posterior/leve',ex:[
+  ]},run:{name:'Treino 1 — Rodagem',detail:'3 km leve · 3 km médio · 2 km leve',km:8,hard:false},swim:null},
+  3:{musc:{title:'Inferior A · posterior/leve',ex:[
     ['rdl','Terra romeno (RDL)','4 × 6-8',0],
     ['mesa-flex','Mesa flexora','3 × 12',0],
     ['afundo','Afundo / passada','3 × 10 cada',0],
     ['pant-pe','Panturrilha em pé — gastrocnêmio','4 × 12-15',0],
     ['pant-exc-a','Panturrilha excêntrica — desce 3-4s','3 × 10','Panturrilha'],
     ['tibial','Elevação de tibial — previne canelite','3 × 15-20','Panturrilha'],
-  ]},
-  qui:{title:'Braço + Core',ex:[
+  ]},run:null,swim:{name:'Natação',detail:'Recuperação ativa, nado leve contínuo',km:1}},
+  4:{musc:{title:'Braço + Core',ex:[
     ['rosca-mart','Rosca direta + martelo','3 × 10 cada',0],
     ['tri-testa','Tríceps testa + corda','3 × 12 cada',0],
     ['prancha','Prancha','3 × 40s',0],
     ['prancha-lat','Prancha lateral','3 × 30s cada',0],
     ['dead-bug','Dead bug','3 × 10',0],
-  ]},
-  sex:{title:'Inferior B · pesado',ex:[
+  ]},run:{name:'Treino 2 — Tiros',detail:'2 km aquec · 5×1 km forte · 2 min descanso',km:7,hard:true},swim:null},
+  5:{musc:{title:'Inferior B · pesado',ex:[
     ['agacho','Agachamento livre','4 × 5-6',0],
     ['leg-press','Leg press','3 × 8-10',0],
     ['cad-ext','Cadeira extensora','3 × 12',0],
     ['pant-sent','Panturrilha sentado — sóleo','3 × 15-20',0],
     ['pant-exc-b','Panturrilha excêntrica — desce 3-4s','3 × 10','Panturrilha'],
-  ]},
+  ]},run:null,swim:{name:'Natação',detail:'Recuperação ativa, nado leve contínuo',km:1}},
+  6:{musc:null,run:{name:'Treino 3 — Longão',detail:'10 km leve mantendo o pace',km:10,hard:false},swim:null},
 };
-let MUSC=DEFAULT_MUSC;
-function applyPlan(plan){
-  MUSC = DEFAULT_MUSC; RUNS = DEFAULT_RUNS; SWIM = DEFAULT_SWIM;
-  if (!plan) return;
-  if (plan.musc) MUSC = Object.assign({}, DEFAULT_MUSC, plan.musc);
-  if (plan.runs) RUNS = Object.assign({}, DEFAULT_RUNS, plan.runs);
-  if (plan.swim) SWIM = Object.assign({}, DEFAULT_SWIM, plan.swim);
-}
-const OMBRO=[
+let WEEK=DEFAULT_WEEK;
+
+const DEFAULT_OMBRO=[
   ['pendular','Pendular (Codman)','2 × 30s','Tronco inclinado, braço solto em círculos.'],
   ['iso-re','Isometria rotação externa','3 × 20-30s','Cotovelo colado, empurra contra a parede.'],
   ['re-elast','Rotação externa com elástico','3 × 12-15','Cotovelo colado, gira o antebraço pra fora.'],
@@ -584,7 +573,8 @@ const OMBRO=[
   ['retracao','Retração escapular','3 × 12','Aperta as escápulas e segura 2s.'],
   ['along-cruz','Alongamento cruzado posterior','3 × 30s','Puxa o braço cruzando o peito. Suave.'],
 ];
-const MOB=[
+let OMBRO=DEFAULT_OMBRO;
+const DEFAULT_MOB=[
   ['_t','Região torácica / coluna'],
   ['gato-camelo','Gato-camelo','10 ciclos','Em quatro apoios, arqueia e arredonda devagar.'],
   ['open-book','Rotação torácica (open book)','8 cada','Deitado de lado, abre o braço de cima.'],
@@ -604,6 +594,16 @@ const MOB=[
   ['isquios','Alongamento de isquiotibiais','40s cada','Perna à frente, inclina o tronco reto.'],
   ['trap-sup','Alongamento de trapézio superior','30s cada','Inclina a cabeça, mão puxa de leve.'],
 ];
+let MOB=DEFAULT_MOB;
+
+function applyPlan(plan){
+  WEEK = JSON.parse(JSON.stringify(DEFAULT_WEEK));
+  OMBRO = DEFAULT_OMBRO; MOB = DEFAULT_MOB;
+  if (!plan) return;
+  if (plan.week) for (const d in plan.week) WEEK[d] = plan.week[d];
+  if (plan.ombro) OMBRO = plan.ombro;
+  if (plan.mob) MOB = plan.mob;
+}
 
 /* ---------- state ---------- */
 let S={loads:{},checks:{},recovery:{},runs:[],tiros:[],muscobs:{},swims:[]};
@@ -626,7 +626,7 @@ async function boot(){
   S.muscobs=await load('training-muscobs',{});
   S.swims=await load('training-swims',[]);
   const dow=new Date().getDay();
-  selDay=SCHED[dow]&&SCHED[dow].musc?SCHED[dow].musc:'seg';
+  selDay = WEEK[dow] && WEEK[dow].musc ? dow : (DOW_ORDER.find(d=>WEEK[d].musc) ?? 1);
   const hr=new Date().getHours();
   document.getElementById('greet').textContent=hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
   document.getElementById('todayLabel').textContent=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
@@ -639,7 +639,7 @@ async function boot(){
 function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRunSelect();renderRecovery();renderRuns();renderTiros();renderMuscObs();renderSwims();renderSwimInfo();}
 
 /* ---------- week ring + lanes ---------- */
-function weekSlots(){const s=[];for(let dn=1;dn<=6;dn++){const c=SCHED[dn];if(c.musc)s.push(dn+'-musc');if(c.run)s.push(dn+'-run');if(c.swim)s.push(dn+'-swim');}return s;}
+function weekSlots(){const s=[];DOW_ORDER.forEach(dn=>{const c=WEEK[dn];if(c.musc)s.push(dn+'-musc');if(c.run)s.push(dn+'-run');if(c.swim)s.push(dn+'-swim');});return s;}
 function wkChecks(){const wk=isoWeek();return S.checks[wk]||{};}
 function renderRing(){
   const slots=weekSlots(),c=wkChecks();
@@ -651,14 +651,14 @@ function renderRing(){
 function renderLanes(){
   const wrap=document.getElementById('lanes'),c=wkChecks(),today=new Date().getDay();
   let h='';
-  for(let dn=1;dn<=6;dn++){
-    const sc=SCHED[dn];let dots='',n=0;
+  DOW_ORDER.forEach(dn=>{
+    const sc=WEEK[dn];let dots='',n=0;
     if(sc.run){dots+='<span class="dot run"></span>';if(c[dn+'-run'])n++;}
     if(sc.musc){dots+='<span class="dot musc"></span>';if(c[dn+'-musc'])n++;}
     if(sc.swim){dots+='<span class="dot swim"></span>';if(c[dn+'-swim'])n++;}
     const tot=(sc.run?1:0)+(sc.musc?1:0)+(sc.swim?1:0);
     h+=`<div class="lane ${dn===today?'today':''}"><div class="d">${DAYABBR[dn]}</div><div class="dots">${dots}</div><div class="num">${tot?n+'/'+tot:'–'}</div></div>`;
-  }
+  });
   wrap.innerHTML=h;
 }
 
@@ -673,11 +673,11 @@ function toggleCheck(type){
   toast(S.checks[wk][id]?'Marcado como feito ✓':'Desmarcado');
 }
 function renderHoje(){
-  const dn=new Date().getDay(),sc=SCHED[dn],c=wkChecks();
+  const dn=new Date().getDay(),sc=WEEK[dn],c=wkChecks();
   const el=document.getElementById('tab-hoje');
-  if(sc.rest){el.innerHTML='<div class="card rest"><div style="font-size:30px;margin-bottom:6px">🌙</div><h3 style="font-size:17px">Descanso total</h3><p style="margin-top:4px">Recuperação é treino também. Até segunda!</p></div>';return;}
+  if(!sc.musc && !sc.run && !sc.swim){el.innerHTML='<div class="card rest"><div style="font-size:30px;margin-bottom:6px">🌙</div><h3 style="font-size:17px">Descanso total</h3><p style="margin-top:4px">Recuperação é treino também. Sem treino marcado pra hoje.</p></div>';return;}
   let h='';
-  if(sc.run){const r=RUNS[sc.run],on=c[dn+'-run'];
+  if(sc.run){const r=sc.run,on=c[dn+'-run'];
     h+=`<div class="card actcard run"><div class="bar"></div><div class="inner">
       <div class="tagline"><span class="tag run">Corrida</span>${r.hard?'<span class="tag hard">Forte</span>':''}</div>
       <h3>${r.name}</h3><p>${r.detail}</p>
@@ -685,18 +685,18 @@ function renderHoje(){
         <button class="btn ${on?'btn-check done':'btn-check'}" onclick="toggleCheck('run')">${on?'✓ Feito':'Marcar feito'}</button>
         <button class="btn btn-ghost btn-sm" onclick="go('corrida')">Registrar</button>
       </div></div></div>`;}
-  if(sc.musc){const m=MUSC[sc.musc],on=c[dn+'-musc'];
+  if(sc.musc){const m=sc.musc,on=c[dn+'-musc'];
     h+=`<div class="card actcard musc"><div class="bar"></div><div class="inner">
       <div class="tagline"><span class="tag musc">Musculação</span></div>
       <h3>${m.title}</h3><p>${m.ex.length} exercícios${sc.run?' · após a corrida':''}</p>
       <div class="row-actions">
         <button class="btn ${on?'btn-check done':'btn-check'}" onclick="toggleCheck('musc')">${on?'✓ Feito':'Marcar feito'}</button>
-        <button class="btn btn-ghost btn-sm" onclick="openDay('${sc.musc}')">Ver treino</button>
+        <button class="btn btn-ghost btn-sm" onclick="openDay(${dn})">Ver treino</button>
       </div></div></div>`;}
-  if(sc.swim){const on=c[dn+'-swim'];
+  if(sc.swim){const sw=sc.swim,on=c[dn+'-swim'];
     h+=`<div class="card actcard swim"><div class="bar"></div><div class="inner">
       <div class="tagline"><span class="tag swim">Natação</span></div>
-      <h3>${SWIM.name}</h3><p>${SWIM.detail}</p>
+      <h3>${sw.name}</h3><p>${sw.detail}</p>
       <div class="row-actions">
         <button class="btn ${on?'btn-check done':'btn-check'}" onclick="toggleCheck('swim')">${on?'✓ Feito':'Marcar feito'}</button>
         <button class="btn btn-ghost btn-sm" onclick="go('natacao')">Registrar</button>
@@ -709,12 +709,15 @@ function renderHoje(){
 
 /* ---------- TREINO ---------- */
 function renderChips(){
-  const order=['seg','ter','qua','qui','sex'],lbl={seg:'Seg · Empurrar',ter:'Ter · Puxar',qua:'Qua · Inf A',qui:'Qui · Braço',sex:'Sex · Inf B'};
-  document.getElementById('dayChips').innerHTML=order.map(d=>`<div class="chip ${d===selDay?'active':''}" onclick="openDay('${d}',true)">${lbl[d]}</div>`).join('');
+  const days=DOW_ORDER.filter(d=>WEEK[d].musc);
+  if(!days.length){document.getElementById('dayChips').innerHTML='';document.getElementById('muscBody').innerHTML='<div class="empty">Nenhum treino de musculação cadastrado.</div>';return;}
+  if(!WEEK[selDay] || !WEEK[selDay].musc) selDay=days[0];
+  document.getElementById('dayChips').innerHTML=days.map(d=>`<div class="chip ${d===selDay?'active':''}" onclick="openDay(${d},true)">${DAYABBR[d]} · ${WEEK[d].musc.title}</div>`).join('');
 }
 function openDay(d,stay){selDay=d;renderChips();renderMusc();if(!stay)go('treino');else window.scrollTo({top:0,behavior:'smooth'});}
 function renderMusc(){
-  const m=MUSC[selDay],L=S.loads;
+  if(!WEEK[selDay] || !WEEK[selDay].musc){document.getElementById('muscBody').innerHTML='';return;}
+  const m=WEEK[selDay].musc,L=S.loads;
   let h=`<div class="exhead"><h2>${m.title}</h2><span class="meta">${m.ex.length} exercícios</span></div>`;
   m.ex.forEach(([id,name,sets,acc])=>{
     const vals=L[id]||{};
@@ -771,21 +774,26 @@ function renderRecovery(){
 /* ---------- CORRIDA ---------- */
 document.getElementById('rStars').addEventListener('click',e=>{const s=e.target.closest('.star');if(!s)return;runStars=+s.dataset.v;[...document.querySelectorAll('#rStars .star')].forEach(x=>x.classList.toggle('on',+x.dataset.v<=runStars));});
 function shortName(name){ const parts=String(name).split('—'); return (parts.length>1?parts[1]:parts[0]).trim(); }
+function runDays(){ return DOW_ORDER.filter(d=>WEEK[d].run); }
 function renderRunSelect(){
   const sel=document.getElementById('rTreino');
   const prev=sel.value;
-  sel.innerHTML=RUN_ORDER.map(t=>{const r=RUNS[t];return `<option value="${t}">${r.name}${r.km?' ('+r.km+' km)':''}</option>`;}).join('');
-  sel.value = RUNS[prev] ? prev : RUN_ORDER[0];
+  const days=runDays();
+  if(!days.length){ sel.innerHTML='<option value="">Nenhum treino de corrida cadastrado</option>'; document.getElementById('rTreinoInfo').innerHTML=''; document.getElementById('tirosLabel').textContent='Tiros'; return; }
+  sel.innerHTML=days.map(d=>{const r=WEEK[d].run;return `<option value="${d}">${DAYABBR[d]} · ${r.name}${r.km?' ('+r.km+' km)':''}</option>`;}).join('');
+  sel.value = days.includes(+prev) ? prev : days[0];
   updateRunInfo();
-  document.getElementById('tirosLabel').textContent='Tiros — '+RUNS.t2.name;
+  const hardDay=days.find(d=>WEEK[d].run.hard);
+  document.getElementById('tirosLabel').textContent='Tiros'+(hardDay?' — '+WEEK[hardDay].run.name:'');
 }
 function updateRunInfo(){
-  const t=document.getElementById('rTreino').value, r=RUNS[t];
-  if(!r) return;
+  const t=document.getElementById('rTreino').value, r=WEEK[t] && WEEK[t].run;
+  if(!r) { document.getElementById('rTreinoInfo').innerHTML=''; return; }
   document.getElementById('rTreinoInfo').innerHTML=`<div style="font-weight:800;font-size:13.5px;color:#1B4FBE">${r.name}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px">${r.detail}${r.hard?' · <strong>treino forte</strong>':''}</div>`;
 }
 function addRun(){
   const t=document.getElementById('rTreino').value;
+  if(t===''){toast('Nenhum treino de corrida cadastrado');return;}
   const run={treino:t,data:document.getElementById('rData').value,dist:document.getElementById('rDist').value,
     pace:document.getElementById('rPace').value.trim(),alvo:document.getElementById('rAlvo').value.trim(),
     sens:runStars,obs:document.getElementById('rObs').value.trim()};
@@ -793,7 +801,7 @@ function addRun(){
   S.runs.unshift(run);save('training-runs',S.runs);
   // marca o check se for hoje
   const d=new Date(run.data+'T12:00:00'),wk=isoWeek(d),dn=d.getDay();
-  if(SCHED[dn]&&SCHED[dn].run){if(!S.checks[wk])S.checks[wk]={};S.checks[wk][dn+'-run']=true;save('training-checks',S.checks);}
+  if(WEEK[dn] && WEEK[dn].run){if(!S.checks[wk])S.checks[wk]={};S.checks[wk][dn+'-run']=true;save('training-checks',S.checks);}
   document.getElementById('rDist').value='';document.getElementById('rPace').value='';document.getElementById('rAlvo').value='';document.getElementById('rObs').value='';
   runStars=0;[...document.querySelectorAll('#rStars .star')].forEach(x=>x.classList.remove('on'));
   renderRuns();renderRing();renderLanes();renderHoje();toast('Corrida salva ✓');
@@ -802,10 +810,12 @@ function renderRuns(){
   const el=document.getElementById('runList');
   if(!S.runs.length){el.innerHTML='<div class="empty">Nenhuma corrida registrada ainda.</div>';return;}
   el.innerHTML=S.runs.slice(0,30).map(r=>{
-    const meta=RUNS[r.treino],ic=r.treino.toUpperCase();
+    const meta=WEEK[r.treino] && WEEK[r.treino].run;
+    const ic=DAYABBR[r.treino]?DAYABBR[r.treino].toUpperCase():'COR';
     const dt=new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
     const sens=r.sens?' · '+'●'.repeat(r.sens):'';
-    return `<div class="runrow"><div class="run-ic ${r.treino}">${ic}</div><div class="run-body"><div class="rt">${shortName(meta.name)}</div><div class="rd">${dt}${r.dist?' · '+r.dist+' km':''}${sens}</div></div><div class="run-pace"><div class="pv">${r.pace||'–'}</div><div class="pl">/km</div></div></div>`;
+    const nome=meta?shortName(meta.name):'Corrida';
+    return `<div class="runrow"><div class="run-ic" style="background:var(--effort)">${ic}</div><div class="run-body"><div class="rt">${nome}</div><div class="rd">${dt}${r.dist?' · '+r.dist+' km':''}${sens}</div></div><div class="run-pace"><div class="pv">${r.pace||'–'}</div><div class="pl">/km</div></div></div>`;
   }).join('');
 }
 function addTiros(){
@@ -833,8 +843,12 @@ function renderTiros(){
 
 /* ---------- NATAÇÃO ---------- */
 document.getElementById('sStars').addEventListener('click',e=>{const s=e.target.closest('.star');if(!s)return;swimStars=+s.dataset.v;[...document.querySelectorAll('#sStars .star')].forEach(x=>x.classList.toggle('on',+x.dataset.v<=swimStars));});
+function swimDays(){ return DOW_ORDER.filter(d=>WEEK[d].swim); }
 function renderSwimInfo(){
-  document.getElementById('swimInfo').innerHTML=`<div style="font-weight:800;font-size:13.5px;color:#0E7B89">${SWIM.name}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px">${SWIM.detail}${SWIM.km?' · '+SWIM.km+' km':''}</div>`;
+  const today=new Date().getDay(), sw=WEEK[today] && WEEK[today].swim;
+  const box=document.getElementById('swimInfo');
+  if(!sw){ box.innerHTML='<div class="empty" style="padding:4px 2px">Nenhum treino de natação previsto para hoje.</div>'; return; }
+  box.innerHTML=`<div style="font-weight:800;font-size:13.5px;color:#0E7B89">${sw.name}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px">${sw.detail}${sw.km?' · '+sw.km+' km':''}</div>`;
 }
 function addSwim(){
   const data=document.getElementById('sData').value;
@@ -843,7 +857,7 @@ function addSwim(){
     sens:swimStars,obs:document.getElementById('sObs').value.trim()};
   S.swims.unshift(swim);save('training-swims',S.swims);
   const d=new Date(data+'T12:00:00'),wk=isoWeek(d),dn=d.getDay();
-  if(SCHED[dn]&&SCHED[dn].swim){if(!S.checks[wk])S.checks[wk]={};S.checks[wk][dn+'-swim']=true;save('training-checks',S.checks);}
+  if(WEEK[dn] && WEEK[dn].swim){if(!S.checks[wk])S.checks[wk]={};S.checks[wk][dn+'-swim']=true;save('training-checks',S.checks);}
   document.getElementById('sDist').value='';document.getElementById('sDur').value='';document.getElementById('sObs').value='';
   swimStars=0;[...document.querySelectorAll('#sStars .star')].forEach(x=>x.classList.remove('on'));
   renderSwims();renderRing();renderLanes();renderHoje();toast('Natação salva ✓');
@@ -854,14 +868,11 @@ function renderSwims(){
   el.innerHTML=S.swims.slice(0,30).map(s=>{
     const dt=new Date(s.data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
     const sens=s.sens?' · '+'●'.repeat(s.sens):'';
-    return `<div class="runrow"><div class="run-ic" style="background:var(--swim)">🏊</div><div class="run-body"><div class="rt">${SWIM.name}</div><div class="rd">${dt}${s.dist?' · '+s.dist+' m':''}${s.dur?' · '+s.dur+' min':''}${sens}</div></div></div>`;
+    return `<div class="runrow"><div class="run-ic" style="background:var(--swim)">🏊</div><div class="run-body"><div class="rt">Natação</div><div class="rd">${dt}${s.dist?' · '+s.dist+' m':''}${s.dur?' · '+s.dur+' min':''}${sens}</div></div></div>`;
   }).join('');
 }
 
 /* ---------- PERSONAL (treinador) ---------- */
-const DAY_ORDER=['seg','ter','qua','qui','sex'];
-const DAY_LABEL={seg:'Segunda',ter:'Terça',qua:'Quarta',qui:'Quinta',sex:'Sexta'};
-const RUN_ORDER=['t1','t2','t3'];
 let pAlunos=[], pCurrentAluno=null, pCurrentRow=null, pPlan=null;
 
 async function openAlunoList(){
@@ -880,9 +891,8 @@ async function selectAluno(id){
   pCurrentAluno = pAlunos.find(a=>a.id===id);
   const { data, error } = await sb.from('training_data').select('*').eq('user_id', id).maybeSingle();
   pCurrentRow = data || null;
-  pPlan = (data && data.plan) ? JSON.parse(JSON.stringify(data.plan)) : { musc:{}, runs:{}, swim:null };
-  if (!pPlan.musc) pPlan.musc = {};
-  if (!pPlan.runs) pPlan.runs = {};
+  pPlan = (data && data.plan) ? JSON.parse(JSON.stringify(data.plan)) : { week:{}, ombro:null, mob:null };
+  if (!pPlan.week) pPlan.week = {};
   document.getElementById('pTitle').textContent = pCurrentAluno.email;
   document.getElementById('pSub').textContent = 'Editando o plano de treino';
   document.getElementById('pListView').classList.add('hide');
@@ -892,80 +902,121 @@ async function selectAluno(id){
 }
 function backToList(){ openAlunoList(); }
 
-function dayData(d){ return pPlan.musc[d] || DEFAULT_MUSC[d]; }
-function runData(t){ return pPlan.runs[t] || DEFAULT_RUNS[t]; }
-
-function renderPlanEditor(){
-  let mh='';
-  DAY_ORDER.forEach(d=>{
-    const dd=dayData(d);
-    mh+=`<div class="dayedit"><div class="field"><label>${DAY_LABEL[d]} — título do treino</label>
-      <input type="text" value="${dd.title}" oninput="setDayTitle('${d}',this.value)"></div>
-      <div id="exlist-${d}">${renderExRows(d,dd)}</div>
-      <button class="addx" onclick="addExercise('${d}')">+ exercício</button></div>`;
-  });
-  document.getElementById('planMuscEdit').innerHTML = mh;
-
-  let rh='';
-  RUN_ORDER.forEach(t=>{
-    const r=runData(t);
-    rh+=`<div class="dayedit">
-      <div class="field"><label>Nome</label><input type="text" value="${r.name}" oninput="setRunField('${t}','name',this.value)"></div>
-      <div class="field"><label>Detalhe</label><input type="text" value="${r.detail}" oninput="setRunField('${t}','detail',this.value)"></div>
-      <div class="grid2">
-        <div class="field"><label>Distância (km)</label><input type="number" value="${r.km}" oninput="setRunField('${t}','km',this.value)"></div>
-        <div class="field"><label>Forte?</label><select onchange="setRunField('${t}','hard',this.value==='1')">
-          <option value="0" ${!r.hard?'selected':''}>Não</option><option value="1" ${r.hard?'selected':''}>Sim</option></select></div>
-      </div></div>`;
-  });
-  document.getElementById('planRunsEdit').innerHTML = rh;
-
-  const sw=pPlan.swim || DEFAULT_SWIM;
-  document.getElementById('planSwimEdit').innerHTML = `<div class="dayedit">
-      <div class="field"><label>Nome</label><input type="text" value="${sw.name}" oninput="setSwimField('name',this.value)"></div>
-      <div class="field"><label>Detalhe</label><input type="text" value="${sw.detail}" oninput="setSwimField('detail',this.value)"></div>
-      <div class="field"><label>Distância (km)</label><input type="number" value="${sw.km}" oninput="setSwimField('km',this.value)"></div>
-    </div>`;
+function pDay(dn){
+  if (!pPlan.week[dn]) pPlan.week[dn] = JSON.parse(JSON.stringify(DEFAULT_WEEK[dn]));
+  return pPlan.week[dn];
 }
-function renderExRows(d,dd){
+function renderPlanEditor(){
+  let h='';
+  DOW_ORDER.forEach(dn=>{
+    const day=pDay(dn);
+    h+=`<div class="card" style="margin-bottom:14px"><div class="eyebrow" style="margin-bottom:10px">${DOW_LABEL[dn]}</div>${renderDayBlock(dn,day)}</div>`;
+  });
+  document.getElementById('planWeekEdit').innerHTML = h;
+  renderOmbroEdit();
+  renderMobEdit();
+}
+function renderDayBlock(dn,day){
+  let h='';
+  h+=`<div class="dayedit"><div class="field"><label><input type="checkbox" ${day.musc?'checked':''} onchange="toggleDayPart(${dn},'musc',this.checked)"> Musculação</label></div>`;
+  if (day.musc) {
+    h+=`<div class="field"><label>Título do treino</label><input type="text" value="${day.musc.title}" oninput="setMuscTitle(${dn},this.value)"></div>
+      <div id="exlist-${dn}">${renderExRows(dn,day.musc)}</div>
+      <button class="addx" onclick="addExercise(${dn})">+ exercício</button>`;
+  }
+  h+=`</div>`;
+
+  h+=`<div class="dayedit"><div class="field"><label><input type="checkbox" ${day.run?'checked':''} onchange="toggleDayPart(${dn},'run',this.checked)"> Corrida</label></div>`;
+  if (day.run) {
+    h+=`<div class="field"><label>Nome</label><input type="text" value="${day.run.name}" oninput="setRunField(${dn},'name',this.value)"></div>
+      <div class="field"><label>Detalhe</label><input type="text" value="${day.run.detail}" oninput="setRunField(${dn},'detail',this.value)"></div>
+      <div class="grid2">
+        <div class="field"><label>Distância (km)</label><input type="number" value="${day.run.km}" oninput="setRunField(${dn},'km',this.value)"></div>
+        <div class="field"><label>Forte?</label><select onchange="setRunField(${dn},'hard',this.value==='1')">
+          <option value="0" ${!day.run.hard?'selected':''}>Não</option><option value="1" ${day.run.hard?'selected':''}>Sim</option></select></div>
+      </div>`;
+  }
+  h+=`</div>`;
+
+  h+=`<div class="dayedit"><div class="field" style="margin-bottom:${day.swim?'11px':'0'}"><label><input type="checkbox" ${day.swim?'checked':''} onchange="toggleDayPart(${dn},'swim',this.checked)"> Natação</label></div>`;
+  if (day.swim) {
+    h+=`<div class="field"><label>Nome</label><input type="text" value="${day.swim.name}" oninput="setSwimField(${dn},'name',this.value)"></div>
+      <div class="field"><label>Detalhe</label><input type="text" value="${day.swim.detail}" oninput="setSwimField(${dn},'detail',this.value)"></div>
+      <div class="field"><label>Distância (km)</label><input type="number" value="${day.swim.km}" oninput="setSwimField(${dn},'km',this.value)"></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function toggleDayPart(dn,part,checked){
+  const day=pDay(dn);
+  if (checked) {
+    const tpl=(DEFAULT_WEEK[dn]&&DEFAULT_WEEK[dn][part]) || (part==='musc'?BLANK_MUSC:part==='run'?BLANK_RUN:BLANK_SWIM);
+    day[part]=JSON.parse(JSON.stringify(tpl));
+  } else {
+    day[part]=null;
+  }
+  renderPlanEditor();
+}
+function renderExRows(dn,dd){
   return dd.ex.map((ex,i)=>{
     const [id,name,sets,acc]=ex;
     return `<div class="exedit">
-      <input class="nm-field" type="text" value="${name}" placeholder="Nome do exercício" oninput="setExField('${d}',${i},1,this.value)">
-      <input type="text" value="${sets}" placeholder="4 × 8" oninput="setExField('${d}',${i},2,this.value)">
-      <button class="rmx" onclick="removeExercise('${d}',${i})">×</button>
+      <input class="nm-field" type="text" value="${name}" placeholder="Nome do exercício" oninput="setExField(${dn},${i},1,this.value)">
+      <input type="text" value="${sets}" placeholder="4 × 8" oninput="setExField(${dn},${i},2,this.value)">
+      <button class="rmx" onclick="removeExercise(${dn},${i})">×</button>
     </div>`;
   }).join('');
 }
-function ensureDayInPlan(d){
-  if (!pPlan.musc[d]) pPlan.musc[d] = JSON.parse(JSON.stringify(DEFAULT_MUSC[d]));
-  return pPlan.musc[d];
-}
-function ensureRunInPlan(t){
-  if (!pPlan.runs[t]) pPlan.runs[t] = JSON.parse(JSON.stringify(DEFAULT_RUNS[t]));
-  return pPlan.runs[t];
-}
-function setDayTitle(d,v){ ensureDayInPlan(d).title=v; }
-function setExField(d,i,idx,v){ const dd=ensureDayInPlan(d); dd.ex[i][idx]=v; }
-function addExercise(d){
-  const dd=ensureDayInPlan(d);
+function setMuscTitle(dn,v){ pDay(dn).musc.title=v; }
+function setExField(dn,i,idx,v){ pDay(dn).musc.ex[i][idx]=v; }
+function addExercise(dn){
+  const dd=pDay(dn).musc;
   const slug='ex-'+Date.now().toString(36)+'-'+dd.ex.length;
   dd.ex.push([slug,'Novo exercício','3 × 10',0]);
-  document.getElementById('exlist-'+d).innerHTML = renderExRows(d,dd);
+  document.getElementById('exlist-'+dn).innerHTML = renderExRows(dn,dd);
 }
-function removeExercise(d,i){
-  const dd=ensureDayInPlan(d);
+function removeExercise(dn,i){
+  const dd=pDay(dn).musc;
   dd.ex.splice(i,1);
-  document.getElementById('exlist-'+d).innerHTML = renderExRows(d,dd);
+  document.getElementById('exlist-'+dn).innerHTML = renderExRows(dn,dd);
 }
-function setRunField(t,field,v){
-  const r=ensureRunInPlan(t);
-  r[field] = field==='km' ? +v : v;
+function setRunField(dn,field,v){ pDay(dn).run[field] = field==='km' ? +v : v; }
+function setSwimField(dn,field,v){ pDay(dn).swim[field] = field==='km' ? +v : v; }
+
+function ensureOmbro(){ if (!pPlan.ombro) pPlan.ombro = JSON.parse(JSON.stringify(DEFAULT_OMBRO)); return pPlan.ombro; }
+function ensureMob(){ if (!pPlan.mob) pPlan.mob = JSON.parse(JSON.stringify(DEFAULT_MOB)); return pPlan.mob; }
+const descInputStyle='width:100%;margin:-4px 0 8px;border:1.5px solid var(--line);border-radius:9px;padding:8px 9px;font-size:12.5px;font-family:inherit;color:var(--ink);background:#FBFCFD';
+function renderOmbroEdit(){
+  const arr=ensureOmbro();
+  document.getElementById('planOmbroEdit').innerHTML = arr.map((it,i)=>`<div class="exedit">
+      <input class="nm-field" type="text" value="${it[1]}" placeholder="Nome" oninput="setOmbroField(${i},1,this.value)">
+      <input type="text" value="${it[2]}" placeholder="Séries" oninput="setOmbroField(${i},2,this.value)">
+      <button class="rmx" onclick="removeOmbro(${i})">×</button>
+    </div><input type="text" value="${it[3]}" placeholder="Descrição" style="${descInputStyle}" oninput="setOmbroField(${i},3,this.value)">`).join('');
 }
-function setSwimField(field,v){
-  if (!pPlan.swim) pPlan.swim = JSON.parse(JSON.stringify(DEFAULT_SWIM));
-  pPlan.swim[field] = field==='km' ? +v : v;
+function setOmbroField(i,idx,v){ ensureOmbro()[i][idx]=v; }
+function addOmbro(){ ensureOmbro().push(['ex-'+Date.now().toString(36),'Novo exercício','3 × 10','']); renderOmbroEdit(); }
+function removeOmbro(i){ ensureOmbro().splice(i,1); renderOmbroEdit(); }
+
+function renderMobEdit(){
+  const arr=ensureMob();
+  document.getElementById('planMobEdit').innerHTML = arr.map((it,i)=>{
+    if (it[0] && it[0][0]==='_') {
+      return `<div class="exedit"><input class="nm-field" type="text" value="${it[1]}" placeholder="Nome da categoria" oninput="setMobCat(${i},this.value)"><button class="rmx" onclick="removeMob(${i})">×</button></div>`;
+    }
+    return `<div class="exedit">
+      <input class="nm-field" type="text" value="${it[1]}" placeholder="Nome" oninput="setMobField(${i},1,this.value)">
+      <input type="text" value="${it[2]}" placeholder="Séries" oninput="setMobField(${i},2,this.value)">
+      <button class="rmx" onclick="removeMob(${i})">×</button>
+    </div><input type="text" value="${it[3]}" placeholder="Descrição" style="${descInputStyle}" oninput="setMobField(${i},3,this.value)">`;
+  }).join('');
 }
+function setMobField(i,idx,v){ ensureMob()[i][idx]=v; }
+function setMobCat(i,v){ ensureMob()[i][1]=v; }
+function addMobCat(){ ensureMob().push(['_cat-'+Date.now().toString(36),'Nova categoria']); renderMobEdit(); }
+function addMobEx(){ ensureMob().push(['ex-'+Date.now().toString(36),'Novo exercício','3 × 10','']); renderMobEdit(); }
+function removeMob(i){ ensureMob().splice(i,1); renderMobEdit(); }
+
 async function savePlan(){
   if (!pCurrentAluno) return;
   const uid = pCurrentAluno.id;
