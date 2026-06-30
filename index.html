@@ -720,6 +720,7 @@ function onSignedOut(){
   currentUser = null;
   rowCache = null;
   localStorage.removeItem('personal_last_aluno');
+  localStorage.removeItem('personal_last_tab');
   document.getElementById('authScreen').classList.remove('hide');
   document.getElementById('signOutBtn').classList.add('hide');
   document.getElementById('personalScreen').classList.add('hide');
@@ -1313,7 +1314,7 @@ async function selectAluno(id){
   document.getElementById('pEditView').classList.remove('hide');
   renderPlanEditor();
   renderNutritionEditor();
-  goPersonalTab('treino');
+  goPersonalTab(localStorage.getItem('personal_last_tab') || 'treino');
   window.scrollTo({top:0});
 }
 function backToList(){
@@ -1321,6 +1322,7 @@ function backToList(){
   openAlunoList({keepSelection:false});
 }
 function goPersonalTab(tab){
+  localStorage.setItem('personal_last_tab', tab);
   document.getElementById('pTab-treino').classList.toggle('hide',tab!=='treino');
   document.getElementById('pTab-nutricao').classList.toggle('hide',tab!=='nutricao');
   document.querySelectorAll('#pEditView .chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.v===tab));
