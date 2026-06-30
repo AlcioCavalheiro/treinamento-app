@@ -287,12 +287,9 @@
     <div class="card">
       <div class="eyebrow" style="margin-bottom:10px">Registrar corrida</div>
       <div class="field"><label>Treino</label>
-        <select id="rTreino">
-          <option value="t1">Treino 1 — Rodagem (8 km)</option>
-          <option value="t2">Treino 2 — Tiros (5×1 km)</option>
-          <option value="t3">Treino 3 — Longão (10 km)</option>
-        </select>
+        <select id="rTreino" onchange="updateRunInfo()"></select>
       </div>
+      <div class="card" id="rTreinoInfo" style="background:var(--blue-soft);box-shadow:none;border:0;padding:12px 14px;margin-bottom:11px"></div>
       <div class="grid2">
         <div class="field"><label>Data</label><input type="date" id="rData"></div>
         <div class="field"><label>Distância (km)</label><input type="number" id="rDist" inputmode="decimal" placeholder="8"></div>
@@ -312,7 +309,7 @@
     </div>
 
     <div class="card">
-      <div class="eyebrow" style="margin-bottom:4px">Tiros — Treino 2</div>
+      <div class="eyebrow" style="margin-bottom:4px" id="tirosLabel">Tiros — Treino 2</div>
       <div class="micro" style="margin-top:2px">Pace de cada 1 km forte (mm:ss). Acompanhe a evolução abaixo.</div>
       <div class="field" style="margin-top:12px"><label>Data</label><input type="date" id="tData"></div>
       <div class="grid5" style="margin-bottom:11px">
@@ -598,7 +595,7 @@ async function boot(){
   document.getElementById('recupDate').textContent=new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
   renderAll();
 }
-function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRecovery();renderRuns();renderTiros();renderMuscObs();}
+function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRunSelect();renderRecovery();renderRuns();renderTiros();renderMuscObs();}
 
 /* ---------- week ring + lanes ---------- */
 function weekSlots(){const s=[];for(let dn=1;dn<=6;dn++){const c=SCHED[dn];if(c.musc)s.push(dn+'-musc');if(c.run)s.push(dn+'-run');if(c.swim)s.push(dn+'-swim');}return s;}
@@ -731,6 +728,20 @@ function renderRecovery(){
 
 /* ---------- CORRIDA ---------- */
 document.getElementById('rStars').addEventListener('click',e=>{const s=e.target.closest('.star');if(!s)return;runStars=+s.dataset.v;[...document.querySelectorAll('#rStars .star')].forEach(x=>x.classList.toggle('on',+x.dataset.v<=runStars));});
+function shortName(name){ const parts=String(name).split('—'); return (parts.length>1?parts[1]:parts[0]).trim(); }
+function renderRunSelect(){
+  const sel=document.getElementById('rTreino');
+  const prev=sel.value;
+  sel.innerHTML=RUN_ORDER.map(t=>{const r=RUNS[t];return `<option value="${t}">${r.name}${r.km?' ('+r.km+' km)':''}</option>`;}).join('');
+  sel.value = RUNS[prev] ? prev : RUN_ORDER[0];
+  updateRunInfo();
+  document.getElementById('tirosLabel').textContent='Tiros — '+RUNS.t2.name;
+}
+function updateRunInfo(){
+  const t=document.getElementById('rTreino').value, r=RUNS[t];
+  if(!r) return;
+  document.getElementById('rTreinoInfo').innerHTML=`<div style="font-weight:800;font-size:13.5px;color:#1B4FBE">${r.name}</div><div style="font-size:13px;color:var(--ink-soft);margin-top:3px">${r.detail}${r.hard?' · <strong>treino forte</strong>':''}</div>`;
+}
 function addRun(){
   const t=document.getElementById('rTreino').value;
   const run={treino:t,data:document.getElementById('rData').value,dist:document.getElementById('rDist').value,
@@ -752,7 +763,7 @@ function renderRuns(){
     const meta=RUNS[r.treino],ic=r.treino.toUpperCase();
     const dt=new Date(r.data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
     const sens=r.sens?' · '+'●'.repeat(r.sens):'';
-    return `<div class="runrow"><div class="run-ic ${r.treino}">${ic}</div><div class="run-body"><div class="rt">${meta.name.split('—')[1].trim()}</div><div class="rd">${dt}${r.dist?' · '+r.dist+' km':''}${sens}</div></div><div class="run-pace"><div class="pv">${r.pace||'–'}</div><div class="pl">/km</div></div></div>`;
+    return `<div class="runrow"><div class="run-ic ${r.treino}">${ic}</div><div class="run-body"><div class="rt">${shortName(meta.name)}</div><div class="rd">${dt}${r.dist?' · '+r.dist+' km':''}${sens}</div></div><div class="run-pace"><div class="pv">${r.pace||'–'}</div><div class="pl">/km</div></div></div>`;
   }).join('');
 }
 function addTiros(){
