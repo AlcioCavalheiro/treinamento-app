@@ -729,8 +729,14 @@ async function fetchMyRole(){
   return data.role;
 }
 sb.auth.onAuthStateChange((event, session) => {
-  if (session && session.user) onAuthed(session.user);
-  else onSignedOut();
+  if (!session || !session.user) { onSignedOut(); return; }
+  if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+    // Supabase revalida a sessão quando a aba volta a ficar visível.
+    // Só atualiza o usuário, sem resetar a tela (ex: personal editando um aluno).
+    currentUser = session.user;
+    return;
+  }
+  onAuthed(session.user);
 });
 
 /* ---------- data ---------- */
