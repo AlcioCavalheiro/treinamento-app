@@ -219,6 +219,27 @@
   .fooditem:last-child{border-bottom:0}
   .fooditem .fi-nm{font-weight:600}
   .fooditem .fi-meta{color:var(--muted);font-size:11.5px}
+
+  /* Diet Box style food UI */
+  .src-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .src-pill{background:#F1F4F8;color:var(--ink-soft);border:1.5px solid var(--line);border-radius:999px;
+    padding:5px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .src-pill.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .fl-pick{background:var(--nutri-soft);border-radius:12px;padding:12px;margin:8px 0 10px}
+  .fl-pick .fl-nm{font-weight:700;font-size:14px;color:var(--ink)}
+  .fl-pick .fl-100{font-size:11px;color:var(--muted);margin:2px 0 10px}
+  .fl-pick .fl-row{display:flex;gap:8px;align-items:flex-end}
+  .fl-pick .fl-row select{flex:1.5;border:1.5px solid var(--line);border-radius:9px;padding:9px 8px;font-size:13px;font-family:inherit;background:#fff}
+  .fl-pick .fl-row input{flex:1;border:1.5px solid var(--line);border-radius:9px;padding:9px 8px;font-size:14px;font-family:inherit;font-weight:700;text-align:center;background:#fff}
+  .fl-pick .fl-macro{font-size:12.5px;font-weight:700;margin-top:8px;color:#8A5E10;line-height:1.4}
+  .custom-form{background:#F8FAFF;border:1.5px dashed var(--blue);border-radius:12px;padding:12px;margin-top:8px}
+  .custom-toggle{background:none;border:1.5px dashed var(--line);border-radius:9px;padding:8px 12px;
+    font-size:13px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit;width:100%;text-align:left;margin-top:8px}
+  .fr-item .fr-orig{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;
+    padding:1px 5px;border-radius:4px;margin-left:6px;vertical-align:middle}
+  .fr-orig.taco{background:#E2F4EC;color:#15A06B}
+  .fr-orig.tbca{background:#E8F0FE;color:#1B4FBE}
+  .fr-orig.custom{background:var(--nutri-soft);color:#8A5E10}
 </style>
 </head>
 <body>
@@ -557,14 +578,45 @@
             </select>
           </div>
         </div>
+        <div class="eyebrow" style="margin-bottom:7px">Tabela de alimentos</div>
+        <div class="src-pills">
+          <div class="src-pill active" onclick="setFoodOrigem('all')">Todos</div>
+          <div class="src-pill" onclick="setFoodOrigem('taco')">TACO</div>
+          <div class="src-pill" onclick="setFoodOrigem('tbca')">TBCA</div>
+          <div class="src-pill" onclick="setFoodOrigem('custom')">Meus alimentos</div>
+        </div>
         <div class="field foodsearch">
-          <label>Alimento</label>
-          <input type="text" id="flBusca" placeholder="Buscar na tabela TACO..." autocomplete="off" oninput="searchFoods(this.value)">
+          <label>Buscar alimento</label>
+          <input type="text" id="flBusca" placeholder="Ex: frango grelhado, arroz..." autocomplete="off" oninput="searchFoods(this.value)">
           <div id="flResults" class="foodresults hide"></div>
         </div>
-        <div id="flSelected" class="micro hide" style="margin-top:6px"></div>
-        <div class="field"><label>Quantidade (g)</label><input type="number" id="flQtd" inputmode="numeric" placeholder="100"></div>
-        <button class="btn btn-check" onclick="addFoodLog()">Adicionar</button>
+        <div id="flPick" class="fl-pick hide">
+          <div class="fl-nm" id="flPickNome"></div>
+          <div class="fl-100" id="flPick100"></div>
+          <div class="fl-row">
+            <select id="flMedida" onchange="updateFlPreview()">
+              <option value="100">Grama (g)</option>
+            </select>
+            <input type="number" id="flQtd" inputmode="decimal" value="100" placeholder="Qtd" oninput="updateFlPreview()">
+          </div>
+          <div class="fl-macro" id="flMacro"></div>
+        </div>
+        <button class="btn btn-check" onclick="addFoodLog()" style="margin-top:4px">Adicionar</button>
+        <button class="custom-toggle" onclick="toggleCustomForm()">+ Cadastrar alimento não encontrado</button>
+        <div id="customFoodForm" class="custom-form hide">
+          <div class="eyebrow" style="margin-bottom:8px">Novo alimento (por 100g)</div>
+          <div class="field"><label>Nome do alimento</label><input type="text" id="cfNome" placeholder="Ex: Pão caseiro da vovó"></div>
+          <div class="grid2">
+            <div class="field"><label>Kcal</label><input type="number" id="cfKcal" inputmode="decimal" placeholder="250"></div>
+            <div class="field"><label>Proteína (g)</label><input type="number" id="cfProt" inputmode="decimal" placeholder="8"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Carboidrato (g)</label><input type="number" id="cfCarb" inputmode="decimal" placeholder="45"></div>
+            <div class="field"><label>Gordura (g)</label><input type="number" id="cfGord" inputmode="decimal" placeholder="3"></div>
+          </div>
+          <div class="field"><label>Grupo / categoria (opcional)</label><input type="text" id="cfGrupo" placeholder="Ex: Pães e biscoitos"></div>
+          <button class="btn btn-check" onclick="addCustomFood()">Salvar alimento</button>
+        </div>
       </div>
       <div class="card">
         <div class="eyebrow" style="margin-bottom:6px">Hoje</div>
@@ -668,12 +720,77 @@ async function saveNutriField(col,val){
   await sb.from('nutrition_data').update({ [col]: val, updated_at: new Date().toISOString() }).eq('user_id', currentUser.id);
 }
 let FOODS=[];
+let MEASURES=[];
+let foodOrigem='all';
+let flSelectedFood=null;
 async function loadFoods(){
   if (FOODS.length) return;
-  const { data, error } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura').order('nome');
-  if (!error) FOODS = (data || []).map(f=>({...f, proteina:f.proteina||0, carbo:f.carbo||0, gordura:f.gordura||0}));
+  const { data } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura,origem').order('nome');
+  if (data) FOODS = data.map(f=>({...f, proteina:f.proteina||0, carbo:f.carbo||0, gordura:f.gordura||0, origem:f.origem||'taco'}));
+  const { data: mdata } = await sb.from('food_measures').select('*').order('id');
+  if (mdata) MEASURES = mdata;
 }
 function normStr(s){ return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
+
+function buildMeasureOptions(selectedGramas){
+  let opts = `<option value="1" data-g="1"${selectedGramas===1?' selected':''}>Grama (g)</option>`;
+  MEASURES.filter(m=>m.gramas!==1).forEach(m=>{
+    const sel = selectedGramas===m.gramas?' selected':'';
+    opts += `<option value="${m.id}" data-g="${m.gramas}"${sel}>${m.nome} (~${m.gramas}g)</option>`;
+  });
+  return opts;
+}
+function setFoodOrigem(o){
+  foodOrigem=o;
+  document.querySelectorAll('.src-pill').forEach(el=>{
+    const tag=el.textContent.trim().toLowerCase();
+    const map={'todos':'all','taco':'taco','tbca':'tbca','meus alimentos':'custom'};
+    el.classList.toggle('active',map[tag]===o);
+  });
+  const q=document.getElementById('flBusca')?.value||'';
+  searchFoods(q);
+}
+function updateFlPreview(){
+  if(!flSelectedFood) return;
+  const sel=document.getElementById('flMedida');
+  const opt=sel.options[sel.selectedIndex];
+  const gramas=parseFloat(opt.getAttribute('data-g'))||1;
+  const qty=parseFloat(document.getElementById('flQtd').value)||0;
+  const qtdG=gramas===1?qty:qty*gramas;
+  const f=flSelectedFood;
+  const kcal=Math.round(f.kcal*qtdG/100);
+  const p=(f.proteina*qtdG/100).toFixed(1);
+  const c=(f.carbo*qtdG/100).toFixed(1);
+  const g=(f.gordura*qtdG/100).toFixed(1);
+  document.getElementById('flMacro').innerHTML=
+    `<strong>${kcal} kcal</strong> \u00b7 Prote\u00edna ${p}g \u00b7 Carbo ${c}g \u00b7 Gordura ${g}g<br>`+
+    `<span style="font-weight:400;color:var(--muted)">\u2248 ${Math.round(qtdG)}g de alimento</span>`;
+}
+function toggleCustomForm(){
+  const el=document.getElementById('customFoodForm');
+  el.classList.toggle('hide');
+}
+async function addCustomFood(){
+  const nome=(document.getElementById('cfNome').value||'').trim();
+  const kcal=+document.getElementById('cfKcal').value;
+  const prot=+(document.getElementById('cfProt').value||0);
+  const carb=+(document.getElementById('cfCarb').value||0);
+  const gord=+(document.getElementById('cfGord').value||0);
+  const grupo=(document.getElementById('cfGrupo').value||'').trim();
+  if(!nome||!kcal){toast('Preencha nome e kcal');return;}
+  const {data,error}=await sb.from('foods').insert({nome,kcal,proteina:prot,carbo:carb,gordura:gord,grupo:grupo||null,is_custom:true,created_by:currentUser.id,origem:'custom'}).select().single();
+  if(error){toast('Erro ao salvar: '+error.message);return;}
+  FOODS.push({...data,proteina:data.proteina||0,carbo:data.carbo||0,gordura:data.gordura||0,origem:'custom'});
+  FOODS.sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+  document.getElementById('cfNome').value='';
+  document.getElementById('cfKcal').value='';
+  document.getElementById('cfProt').value='';
+  document.getElementById('cfCarb').value='';
+  document.getElementById('cfGord').value='';
+  document.getElementById('cfGrupo').value='';
+  document.getElementById('customFoodForm').classList.add('hide');
+  toast('Alimento cadastrado \u2713');
+}
 
 /* ---------- auth ---------- */
 let authMode='login';
@@ -1186,15 +1303,18 @@ function renderPlano(){
   }).join('');
   el.innerHTML=h;
 }
-let flSelectedFood=null;
 function searchFoods(q){
   const box=document.getElementById('flResults');
-  flSelectedFood=null;
   if(!q||q.trim().length<2){box.classList.add('hide');box.innerHTML='';return;}
   const ql=normStr(q);
-  const matches=FOODS.filter(f=>normStr(f.nome).includes(ql)).slice(0,8);
-  if(!matches.length){box.classList.add('hide');box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>';box.classList.remove('hide');return;}
-  box.innerHTML=matches.map(f=>`<div class="fr-item" onclick="pickFood(${f.id})"><div class="fr-nm">${f.nome}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`).join('');
+  let pool=FOODS.filter(f=>normStr(f.nome).includes(ql));
+  if(foodOrigem!=='all') pool=pool.filter(f=>f.origem===foodOrigem);
+  pool=pool.slice(0,10);
+  if(!pool.length){box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>';box.classList.remove('hide');return;}
+  box.innerHTML=pool.map(f=>{
+    const tag=`<span class="fr-orig ${f.origem||'taco'}">${(f.origem||'taco').toUpperCase()}</span>`;
+    return `<div class="fr-item" onclick="pickFood(${f.id})"><div class="fr-nm">${f.nome}${tag}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`;
+  }).join('');
   box.classList.remove('hide');
 }
 function pickFood(id){
@@ -1202,22 +1322,32 @@ function pickFood(id){
   if(!flSelectedFood)return;
   document.getElementById('flBusca').value=flSelectedFood.nome;
   document.getElementById('flResults').classList.add('hide');
-  const el=document.getElementById('flSelected');
-  el.classList.remove('hide');
-  el.textContent=`${flSelectedFood.kcal} kcal · P${flSelectedFood.proteina}g · C${flSelectedFood.carbo}g · G${flSelectedFood.gordura}g por 100g`;
+  const pick=document.getElementById('flPick');
+  pick.classList.remove('hide');
+  document.getElementById('flPickNome').textContent=flSelectedFood.nome;
+  document.getElementById('flPick100').textContent=`${flSelectedFood.kcal} kcal · P${flSelectedFood.proteina}g · C${flSelectedFood.carbo}g · G${flSelectedFood.gordura}g por 100g`;
+  const sel=document.getElementById('flMedida');
+  sel.innerHTML=buildMeasureOptions(1);
+  document.getElementById('flQtd').value='100';
+  updateFlPreview();
 }
 function addFoodLog(){
   if(!flSelectedFood){toast('Busque e selecione um alimento');return;}
-  const qtd=+document.getElementById('flQtd').value;
-  if(!qtd){toast('Informe a quantidade');return;}
+  const sel=document.getElementById('flMedida');
+  const opt=sel.options[sel.selectedIndex];
+  const gramas=parseFloat(opt.getAttribute('data-g'))||1;
+  const qtyInput=+document.getElementById('flQtd').value;
+  if(!qtyInput){toast('Informe a quantidade');return;}
+  const qtd=gramas===1?qtyInput:qtyInput*gramas;
   const data=document.getElementById('flData').value || todayKey();
   const f=flSelectedFood;
   const entry={data,refeicao:document.getElementById('flRefeicao').value,food_id:f.id,nome:f.nome,
-    kcal:Math.round(f.kcal*qtd/100), proteina:+(f.proteina*qtd/100).toFixed(1), carbo:+(f.carbo*qtd/100).toFixed(1), gordura:+(f.gordura*qtd/100).toFixed(1), qtd_g:qtd};
+    kcal:Math.round(f.kcal*qtd/100), proteina:+(f.proteina*qtd/100).toFixed(1), carbo:+(f.carbo*qtd/100).toFixed(1), gordura:+(f.gordura*qtd/100).toFixed(1), qtd_g:qtd,
+    medida:opt.textContent, qtd_medida:qtyInput};
   N.food_log.unshift(entry);
   saveNutriField('food_log',N.food_log);
   document.getElementById('flBusca').value='';document.getElementById('flQtd').value='';
-  document.getElementById('flSelected').classList.add('hide');
+  document.getElementById('flPick').classList.add('hide');
   flSelectedFood=null;
   renderFoodLogList();renderNutriResumo();
   toast('Alimento registrado ✓');
@@ -1235,7 +1365,8 @@ function renderFoodLogList(){
   if(!todays.length){el.innerHTML='<div class="empty">Nada registrado ainda hoje.</div>';return;}
   el.innerHTML=todays.map(e=>{
     const i=N.food_log.indexOf(e);
-    return `<div class="fooditem"><div><div class="fi-nm">${e.nome}</div><div class="fi-meta">${e.refeicao} · ${e.qtd_g}g · ${e.kcal} kcal</div></div><button class="rmx" style="width:26px;height:26px" onclick="removeFoodLog(${i})">×</button></div>`;
+    const qtyLabel=e.medida&&e.qtd_medida!=null?`${e.qtd_medida} ${e.medida} (≈${Math.round(e.qtd_g)}g)`:`${e.qtd_g}g`;
+    return `<div class="fooditem"><div><div class="fi-nm">${e.nome}</div><div class="fi-meta">${e.refeicao} · ${qtyLabel} · ${e.kcal} kcal</div></div><button class="rmx" style="width:26px;height:26px" onclick="removeFoodLog(${i})">×</button></div>`;
   }).join('');
 }
 function addWeight(){
@@ -1662,7 +1793,13 @@ function renderMealsEdit(){
       </div>
       <div class="field" style="margin-bottom:8px"><input type="time" value="${m.horario||''}" oninput="setMealField(${mi},'horario',this.value)"></div>
       <div id="mealItems-${mi}">${renderMealItems(mi,m)}</div>
-      <div class="foodsearch" style="margin-top:8px">
+      <div class="src-pills" id="mealSrcPills-${mi}" style="margin-top:8px">
+        <div class="src-pill active" onclick="setMealFoodOrigem(${mi},'all')">Todos</div>
+        <div class="src-pill" onclick="setMealFoodOrigem(${mi},'taco')">TACO</div>
+        <div class="src-pill" onclick="setMealFoodOrigem(${mi},'tbca')">TBCA</div>
+        <div class="src-pill" onclick="setMealFoodOrigem(${mi},'custom')">Meus alimentos</div>
+      </div>
+      <div class="foodsearch">
         <input type="text" placeholder="Buscar alimento para adicionar..." autocomplete="off" oninput="searchMealFood(${mi},this.value)">
         <div id="mealResults-${mi}" class="foodresults hide"></div>
       </div>
@@ -1686,20 +1823,34 @@ function addMeal(){
   renderMealsEdit();
 }
 function removeMeal(mi){ pNutri.meal_plan.meals.splice(mi,1); renderMealsEdit(); }
+let mealFoodOrigem='all';
+function setMealFoodOrigem(mi,o){
+  mealFoodOrigem=o;
+  document.querySelectorAll('#mealSrcPills-'+mi+' .src-pill').forEach(el=>{
+    const tag=el.textContent.trim().toLowerCase();
+    const map={'todos':'all','taco':'taco','tbca':'tbca','meus alimentos':'custom'};
+    el.classList.toggle('active',map[tag]===o);
+  });
+}
 function searchMealFood(mi,q){
   const box=document.getElementById('mealResults-'+mi);
   if (!q || q.trim().length<2) { box.classList.add('hide'); box.innerHTML=''; return; }
   const ql=normStr(q);
-  const matches=FOODS.filter(f=>normStr(f.nome).includes(ql)).slice(0,8);
-  if (!matches.length) { box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>'; box.classList.remove('hide'); return; }
-  box.innerHTML=matches.map(f=>`<div class="fr-item" onclick="pickMealFood(${mi},${f.id})"><div class="fr-nm">${f.nome}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`).join('');
+  let pool=FOODS.filter(f=>normStr(f.nome).includes(ql));
+  if (mealFoodOrigem!=='all') pool=pool.filter(f=>f.origem===mealFoodOrigem);
+  pool=pool.slice(0,10);
+  if (!pool.length) { box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>'; box.classList.remove('hide'); return; }
+  box.innerHTML=pool.map(f=>{
+    const tag=`<span class="fr-orig ${f.origem||'taco'}">${(f.origem||'taco').toUpperCase()}</span>`;
+    return `<div class="fr-item" onclick="pickMealFood(${mi},${f.id})"><div class="fr-nm">${f.nome}${tag}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`;
+  }).join('');
   box.classList.remove('hide');
 }
 function pickMealFood(mi,foodId){
   const f=FOODS.find(x=>x.id===foodId);
   if (!f) return;
   if (!pNutri.meal_plan.meals[mi].items) pNutri.meal_plan.meals[mi].items=[];
-  pNutri.meal_plan.meals[mi].items.push({food_id:f.id,nome:f.nome,kcal100:f.kcal,proteina100:f.proteina,carbo100:f.carbo,gordura100:f.gordura,qtd_g:100});
+  pNutri.meal_plan.meals[mi].items.push({food_id:f.id,nome:f.nome,kcal100:f.kcal,proteina100:f.proteina,carbo100:f.carbo,gordura100:f.gordura,qtd_g:100,medida_gramas:1});
   renderMealsEdit();
 }
 function setMealItemQty(mi,ii,v){
