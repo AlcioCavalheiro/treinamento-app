@@ -241,6 +241,7 @@
   .fr-orig.tbca{background:#E8F0FE;color:#1B4FBE}
   .fr-orig.custom{background:var(--nutri-soft);color:#8A5E10}
   .fr-orig.usda{background:#FBE4E0;color:#C23A1C}
+  .fr-orig.tucunduva{background:#EFE6FB;color:#6B3FA0}
 </style>
 </head>
 <body>
@@ -585,6 +586,7 @@
           <div class="src-pill" onclick="setFoodOrigem('taco')">TACO</div>
           <div class="src-pill" onclick="setFoodOrigem('tbca')">TBCA</div>
           <div class="src-pill" onclick="setFoodOrigem('usda')">USDA</div>
+          <div class="src-pill" onclick="setFoodOrigem('tucunduva')">Tucunduva</div>
           <div class="src-pill" onclick="setFoodOrigem('custom')">Meus alimentos</div>
         </div>
         <div class="field foodsearch">
@@ -757,7 +759,7 @@ function setFoodOrigem(o){
   foodOrigem=o;
   document.querySelectorAll('.src-pill').forEach(el=>{
     const tag=el.textContent.trim().toLowerCase();
-    const map={'todos':'all','taco':'taco','tbca':'tbca','usda':'usda','meus alimentos':'custom'};
+    const map={'todos':'all','taco':'taco','tbca':'tbca','usda':'usda','tucunduva':'tucunduva','meus alimentos':'custom'};
     el.classList.toggle('active',map[tag]===o);
   });
   const q=document.getElementById('flBusca')?.value||'';
@@ -1811,6 +1813,7 @@ function renderMealsEdit(){
         <div class="src-pill" onclick="setMealFoodOrigem(${mi},'taco')">TACO</div>
         <div class="src-pill" onclick="setMealFoodOrigem(${mi},'tbca')">TBCA</div>
         <div class="src-pill" onclick="setMealFoodOrigem(${mi},'usda')">USDA</div>
+        <div class="src-pill" onclick="setMealFoodOrigem(${mi},'tucunduva')">Tucunduva</div>
         <div class="src-pill" onclick="setMealFoodOrigem(${mi},'custom')">Meus alimentos</div>
       </div>
       <div class="foodsearch">
@@ -1843,7 +1846,7 @@ function setMealFoodOrigem(mi,o){
   mealFoodOrigem=o;
   document.querySelectorAll('#mealSrcPills-'+mi+' .src-pill').forEach(el=>{
     const tag=el.textContent.trim().toLowerCase();
-    const map={'todos':'all','taco':'taco','tbca':'tbca','usda':'usda','meus alimentos':'custom'};
+    const map={'todos':'all','taco':'taco','tbca':'tbca','usda':'usda','tucunduva':'tucunduva','meus alimentos':'custom'};
     el.classList.toggle('active',map[tag]===o);
   });
 }

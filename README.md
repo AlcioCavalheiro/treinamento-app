@@ -12,6 +12,7 @@ App de acompanhamento de treino com login (cada usuário só vê os próprios da
    - [`nutrition_schema_v2.sql`](nutrition_schema_v2.sql) (adiciona medidas caseiras, origem do alimento e cadastro de alimentos personalizados)
    - [`tbca_seed.sql`](tbca_seed.sql) (popula o banco com a Tabela TBCA/USP — ~5.600 alimentos brasileiros; arquivo grande, pode demorar para rodar)
    - [`usda_seed.sql`](usda_seed.sql) (popula o banco com a base USDA SR Legacy — ~7.800 alimentos; nomes traduzidos automaticamente do inglês, alguns itens de marca/pratos compostos podem ficar parcialmente em inglês; arquivo grande, pode demorar para rodar)
+   - [`tucunduva_seed.sql`](tucunduva_seed.sql) (popula o banco com a Tabela Tucunduva Philippi — ~1.600 alimentos brasileiros)
 4. Vá em **Project Settings > API** e copie:
    - **Project URL**
    - **anon public key**
