@@ -725,8 +725,19 @@ let foodOrigem='all';
 let flSelectedFood=null;
 async function loadFoods(){
   if (FOODS.length) return;
-  const { data } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura,origem').order('nome');
-  if (data) FOODS = data.map(f=>({...f, proteina:f.proteina||0, carbo:f.carbo||0, gordura:f.gordura||0, origem:f.origem||'taco'}));
+  const all=[];
+  const PAGE=1000;
+  let from=0;
+  while(true){
+    const { data, error } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura,origem').order('id').range(from, from+PAGE-1);
+    if (error) { console.error(error); break; }
+    if (!data || !data.length) break;
+    all.push(...data);
+    if (data.length < PAGE) break;
+    from += PAGE;
+  }
+  FOODS = all.map(f=>({...f, proteina:f.proteina||0, carbo:f.carbo||0, gordura:f.gordura||0, origem:f.origem||'taco'}))
+    .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
   const { data: mdata } = await sb.from('food_measures').select('*').order('id');
   if (mdata) MEASURES = mdata;
 }
