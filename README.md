@@ -6,11 +6,12 @@ App de acompanhamento de treino com login (cada usuário só vê os próprios da
 
 1. Acesse https://supabase.com e crie uma conta/projeto novo.
 2. No painel do projeto, vá em **SQL Editor > New query**, cole o conteúdo de [`schema.sql`](schema.sql) e rode (`Run`).
-3. Vá em **Project Settings > API** e copie:
+3. Rode também, na sequência, [`nutrition_schema.sql`](nutrition_schema.sql) (cria o sistema de nutrição) e depois [`foods_seed.sql`](foods_seed.sql) (popula o banco de alimentos com a Tabela TACO — 591 alimentos brasileiros).
+4. Vá em **Project Settings > API** e copie:
    - **Project URL**
    - **anon public key**
-4. Abra [`config.js`](config.js) e cole esses dois valores no lugar de `COLE_AQUI_...`.
-5. (Opcional, recomendado) Em **Authentication > Providers > Email**, desative "Confirm email" se quiser que o cadastro libere acesso na hora, sem precisar confirmar e-mail.
+5. Abra [`config.js`](config.js) e cole esses dois valores no lugar de `COLE_AQUI_...`.
+6. (Opcional, recomendado) Em **Authentication > Providers > Email**, desative "Confirm email" se quiser que o cadastro libere acesso na hora, sem precisar confirmar e-mail.
 
 ## 2. Testar localmente
 

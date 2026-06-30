@@ -12,6 +12,7 @@
     --effort:#FF5A36; --effort-soft:#FFEAE4;
     --ok:#15A06B; --ok-soft:#E2F4EC;
     --swim:#1AA7B8; --swim-soft:#E2F6F8;
+    --nutri:#E0A22A; --nutri-soft:#FCF1DC;
     --shadow:0 1px 2px rgba(15,39,66,.06),0 6px 20px rgba(15,39,66,.06);
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -193,6 +194,31 @@
   .exedit input.nm-field{flex:2}
   .exedit .rmx{flex:0 0 auto;background:#FBE4E0;color:#C23A1C;border:0;border-radius:9px;width:32px;height:32px;font-weight:800;cursor:pointer}
   .addx{background:#F1F4F8;color:var(--ink);border:0;border-radius:9px;padding:8px 12px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:2px}
+
+  /* nutrição */
+  .tag.nutri{background:var(--nutri-soft);color:#8A5E10}
+  .macrobar{margin-bottom:13px}
+  .macrobar .mtop{display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--ink-soft);margin-bottom:5px}
+  .macrobar .mtop b{color:var(--ink)}
+  .kcalring{display:flex;align-items:center;justify-content:center;flex-direction:column;padding:14px 0 6px}
+  .kcalring .big{font-size:32px;font-weight:800;letter-spacing:-.02em}
+  .kcalring .lbl{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+  .foodsearch{position:relative}
+  .foodresults{position:absolute;left:0;right:0;top:100%;background:#fff;border:1.5px solid var(--line);
+    border-radius:11px;box-shadow:var(--shadow);max-height:230px;overflow-y:auto;z-index:15;margin-top:4px}
+  .foodresults .fr-item{padding:10px 12px;border-bottom:1px solid var(--line2);cursor:pointer;font-size:13px}
+  .foodresults .fr-item:last-child{border-bottom:0}
+  .foodresults .fr-item:hover,.foodresults .fr-item:active{background:var(--bg)}
+  .foodresults .fr-nm{font-weight:700}
+  .foodresults .fr-meta{font-size:11px;color:var(--muted);margin-top:1px}
+  .mealcard{background:var(--surface);border-radius:14px;box-shadow:var(--shadow);padding:13px 14px;margin-bottom:10px;border:1px solid var(--line2)}
+  .mealcard .mhead{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+  .mealcard .mhead h3{font-size:15px}
+  .mealcard .mhead .mkcal{font-size:12px;font-weight:800;color:#8A5E10;background:var(--nutri-soft);padding:3px 8px;border-radius:7px}
+  .fooditem{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--line2);font-size:13px}
+  .fooditem:last-child{border-bottom:0}
+  .fooditem .fi-nm{font-weight:600}
+  .fooditem .fi-meta{color:var(--muted);font-size:11.5px}
 </style>
 </head>
 <body>
@@ -230,22 +256,68 @@
     </div>
     <div id="pEditView" class="hide">
       <div class="backrow"><button class="backbtn" onclick="backToList()">‹ Alunos</button></div>
-      <div class="micro" style="margin-bottom:10px">Marque o que esse aluno treina em cada dia. Deixe desmarcado se não tiver treino naquele dia.</div>
-      <div id="planWeekEdit"></div>
-      <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Recuperação — Ombro</div>
-        <div id="planOmbroEdit"></div>
-        <button class="addx" onclick="addOmbro()">+ exercício</button>
+      <div class="chips" style="margin-bottom:14px">
+        <div class="chip active" data-v="treino" onclick="goPersonalTab('treino')">Treino</div>
+        <div class="chip" data-v="nutricao" onclick="goPersonalTab('nutricao')">Nutrição</div>
       </div>
-      <div class="card">
-        <div class="eyebrow" style="margin-bottom:10px">Recuperação — Mobilidade / Alongamento</div>
-        <div id="planMobEdit"></div>
-        <div style="display:flex;gap:8px;margin-top:4px">
-          <button class="addx" onclick="addMobCat()">+ categoria</button>
-          <button class="addx" onclick="addMobEx()">+ exercício</button>
+
+      <div id="pTab-treino">
+        <div class="micro" style="margin-bottom:10px">Marque o que esse aluno treina em cada dia. Deixe desmarcado se não tiver treino naquele dia.</div>
+        <div id="planWeekEdit"></div>
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:10px">Recuperação — Ombro</div>
+          <div id="planOmbroEdit"></div>
+          <button class="addx" onclick="addOmbro()">+ exercício</button>
         </div>
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:10px">Recuperação — Mobilidade / Alongamento</div>
+          <div id="planMobEdit"></div>
+          <div style="display:flex;gap:8px;margin-top:4px">
+            <button class="addx" onclick="addMobCat()">+ categoria</button>
+            <button class="addx" onclick="addMobEx()">+ exercício</button>
+          </div>
+        </div>
+        <button class="btn btn-check" style="width:100%" onclick="savePlan()">Salvar plano de treino</button>
       </div>
-      <button class="btn btn-check" style="width:100%" onclick="savePlan()">Salvar plano do aluno</button>
+
+      <div id="pTab-nutricao" class="hide">
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:10px">Anamnese</div>
+          <div class="grid2">
+            <div class="field"><label>Peso (kg)</label><input type="number" id="anPeso" inputmode="decimal" oninput="setAnam('peso',this.value)"></div>
+            <div class="field"><label>Altura (cm)</label><input type="number" id="anAltura" inputmode="numeric" oninput="setAnam('altura',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Idade</label><input type="number" id="anIdade" inputmode="numeric" oninput="setAnam('idade',this.value)"></div>
+            <div class="field"><label>Sexo</label><select id="anSexo" onchange="setAnam('sexo',this.value)">
+              <option value="M">Masculino</option><option value="F">Feminino</option></select></div>
+          </div>
+          <div class="field"><label>Nível de atividade</label><select id="anAtividade" onchange="setAnam('atividade',this.value)">
+            <option value="1.2">Sedentário</option><option value="1.375">Leve (1-3x/sem)</option>
+            <option value="1.55">Moderado (3-5x/sem)</option><option value="1.725">Intenso (6-7x/sem)</option>
+            <option value="1.9">Muito intenso</option></select></div>
+          <div class="field"><label>Objetivo</label><select id="anObjetivo" onchange="setAnam('objetivo',this.value)">
+            <option value="emagrecimento">Emagrecimento</option><option value="manutencao">Manutenção</option>
+            <option value="hipertrofia">Hipertrofia</option></select></div>
+          <div class="field"><label>% de gordura (opcional)</label><input type="number" id="anBf" inputmode="decimal" oninput="setAnam('bf',this.value)"></div>
+          <button class="addx" onclick="calcularMetas()">Calcular metas automaticamente</button>
+          <div class="micro" id="anamResultado" style="margin-top:8px"></div>
+          <div class="grid2" style="margin-top:8px">
+            <div class="field"><label>Kcal alvo/dia</label><input type="number" id="anKcal" inputmode="numeric" oninput="setAnam('kcal_alvo',this.value)"></div>
+            <div class="field"><label>Proteína (g)</label><input type="number" id="anProt" inputmode="numeric" oninput="setAnam('proteina_g',this.value)"></div>
+          </div>
+          <div class="grid2">
+            <div class="field"><label>Carboidrato (g)</label><input type="number" id="anCarb" inputmode="numeric" oninput="setAnam('carbo_g',this.value)"></div>
+            <div class="field"><label>Gordura (g)</label><input type="number" id="anGord" inputmode="numeric" oninput="setAnam('gordura_g',this.value)"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="eyebrow" style="margin-bottom:10px">Plano alimentar</div>
+          <div id="planMealsEdit"></div>
+          <button class="addx" onclick="addMeal()">+ refeição</button>
+        </div>
+        <button class="btn btn-check" style="width:100%" onclick="saveNutritionPlan()">Salvar plano alimentar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -388,6 +460,77 @@
       <div id="mobList"></div>
     </div>
   </section>
+
+  <!-- NUTRIÇÃO -->
+  <section id="tab-nutricao" class="hide">
+    <div class="exhead" style="margin-top:4px"><h2>Nutrição</h2></div>
+    <div class="chips" id="nutriChips">
+      <div class="chip active" data-v="resumo" onclick="goNutri('resumo')">Resumo</div>
+      <div class="chip" data-v="plano" onclick="goNutri('plano')">Plano</div>
+      <div class="chip" data-v="registrar" onclick="goNutri('registrar')">Registrar</div>
+      <div class="chip" data-v="peso" onclick="goNutri('peso')">Peso</div>
+    </div>
+
+    <div id="nutri-resumo">
+      <div class="card">
+        <div class="kcalring">
+          <div class="big" id="nrKcal">0</div>
+          <div class="lbl">de <span id="nrKcalAlvo">0</span> kcal hoje</div>
+        </div>
+        <div class="macrobar"><div class="mtop"><span>Proteína</span><b id="nrProtTxt">0 / 0 g</b></div><div class="progress-line"><i id="nrProtBar" style="width:0;background:#1B4FBE"></i></div></div>
+        <div class="macrobar"><div class="mtop"><span>Carboidrato</span><b id="nrCarbTxt">0 / 0 g</b></div><div class="progress-line"><i id="nrCarbBar" style="width:0;background:var(--effort)"></i></div></div>
+        <div class="macrobar" style="margin-bottom:0"><div class="mtop"><span>Gordura</span><b id="nrFatTxt">0 / 0 g</b></div><div class="progress-line"><i id="nrFatBar" style="width:0;background:#8A5E10"></i></div></div>
+      </div>
+      <div class="card" id="nrAnamCard"></div>
+    </div>
+
+    <div id="nutri-plano" class="hide">
+      <div id="planoList"><div class="empty">Nenhum plano alimentar cadastrado ainda. Fale com seu personal.</div></div>
+    </div>
+
+    <div id="nutri-registrar" class="hide">
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:10px">Registrar alimento</div>
+        <div class="grid2">
+          <div class="field"><label>Data</label><input type="date" id="flData"></div>
+          <div class="field"><label>Refeição</label>
+            <select id="flRefeicao">
+              <option>Café da manhã</option><option>Lanche da manhã</option><option>Almoço</option>
+              <option>Lanche da tarde</option><option>Jantar</option><option>Ceia</option>
+            </select>
+          </div>
+        </div>
+        <div class="field foodsearch">
+          <label>Alimento</label>
+          <input type="text" id="flBusca" placeholder="Buscar na tabela TACO..." autocomplete="off" oninput="searchFoods(this.value)">
+          <div id="flResults" class="foodresults hide"></div>
+        </div>
+        <div id="flSelected" class="micro hide" style="margin-top:6px"></div>
+        <div class="field"><label>Quantidade (g)</label><input type="number" id="flQtd" inputmode="numeric" placeholder="100"></div>
+        <button class="btn btn-check" onclick="addFoodLog()">Adicionar</button>
+      </div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:6px">Hoje</div>
+        <div id="foodLogList"><div class="empty">Nada registrado ainda hoje.</div></div>
+      </div>
+    </div>
+
+    <div id="nutri-peso" class="hide">
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:10px">Registrar peso</div>
+        <div class="grid2">
+          <div class="field"><label>Data</label><input type="date" id="wData"></div>
+          <div class="field"><label>Peso (kg)</label><input type="number" id="wPeso" inputmode="decimal" placeholder="70.5"></div>
+        </div>
+        <button class="btn btn-check" onclick="addWeight()">Salvar peso</button>
+      </div>
+      <div class="card">
+        <div class="eyebrow">Evolução</div>
+        <svg class="spark" id="weightSpark" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+        <div id="weightList" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </section>
 </div>
 
 <div class="nav">
@@ -401,6 +544,8 @@
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2 17c1.5 1.3 3 1.3 4.5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 4.5 0M2 21c1.5 1.3 3 1.3 4.5 0s3-1.3 4.5 0 3 1.3 4.5 0 3-1.3 4.5 0M8 13V7a2 2 0 114 0v2"/></svg>Natação</button>
   <button data-tab="recup" onclick="go('recup')">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21s-7-4.5-7-10a4 4 0 017-2 4 4 0 017 2c0 5.5-7 10-7 10z"/></svg>Recup</button>
+  <button data-tab="nutricao" onclick="go('nutricao')">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 3v18M5 3a4 4 0 014 4v4a2 2 0 01-2 2H5M19 3c-2 1-3 3-3 6s1 5 3 6M19 13v8"/></svg>Nutrição</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -447,6 +592,31 @@ const store = {
 };
 async function load(k,def){ const r=await store.get(k); if(!r||r.value==null)return def; try{return JSON.parse(r.value);}catch{return def;} }
 async function save(k,v){ await store.set(k,JSON.stringify(v)); }
+
+/* ---------- storage nutrição (tabela nutrition_data, 1 linha por usuário) ---------- */
+let nutriRowCache = null;
+async function fetchNutriRow(uid){
+  const { data, error } = await sb.from('nutrition_data').select('*').eq('user_id', uid).maybeSingle();
+  if (error) { console.error(error); return null; }
+  if (!data) {
+    const def = { user_id: uid, anamnese:{}, meal_plan:{}, food_log:[], weight_log:[] };
+    await sb.from('nutrition_data').insert(def);
+    return def;
+  }
+  return data;
+}
+async function saveNutriField(col,val){
+  if (!nutriRowCache) nutriRowCache = await fetchNutriRow(currentUser.id);
+  nutriRowCache[col]=val;
+  await sb.from('nutrition_data').update({ [col]: val, updated_at: new Date().toISOString() }).eq('user_id', currentUser.id);
+}
+let FOODS=[];
+async function loadFoods(){
+  if (FOODS.length) return;
+  const { data, error } = await sb.from('foods').select('id,nome,grupo,kcal,proteina,carbo,gordura').order('nome');
+  if (!error) FOODS = data || [];
+}
+function normStr(s){ return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 
 /* ---------- auth ---------- */
 let authMode='login';
@@ -607,6 +777,7 @@ function applyPlan(plan){
 
 /* ---------- state ---------- */
 let S={loads:{},checks:{},recovery:{},runs:[],tiros:[],muscobs:{},swims:[]};
+let N={anamnese:{},meal_plan:{},food_log:[],weight_log:[]};
 let selDay='seg', runStars=0, swimStars=0;
 
 function isoWeek(d=new Date()){const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const ys=new Date(Date.UTC(t.getUTCFullYear(),0,1));const wk=Math.ceil((((t-ys)/864e5)+1)/7);return t.getUTCFullYear()+'-W'+String(wk).padStart(2,'0');}
@@ -633,10 +804,18 @@ async function boot(){
   document.getElementById('rData').value=todayKey();
   document.getElementById('tData').value=todayKey();
   document.getElementById('sData').value=todayKey();
+  document.getElementById('flData').value=todayKey();
+  document.getElementById('wData').value=todayKey();
   document.getElementById('recupDate').textContent=new Date().toLocaleDateString('pt-BR',{day:'numeric',month:'short'});
+  await loadFoods();
+  if (!nutriRowCache) nutriRowCache = await fetchNutriRow(currentUser.id);
+  N.anamnese = (nutriRowCache && nutriRowCache.anamnese) || {};
+  N.meal_plan = (nutriRowCache && nutriRowCache.meal_plan) || {};
+  N.food_log = (nutriRowCache && nutriRowCache.food_log) || [];
+  N.weight_log = (nutriRowCache && nutriRowCache.weight_log) || [];
   renderAll();
 }
-function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRunSelect();renderRecovery();renderRuns();renderTiros();renderMuscObs();renderSwims();renderSwimInfo();}
+function renderAll(){renderLanes();renderRing();renderHoje();renderChips();renderMusc();renderRunSelect();renderRecovery();renderRuns();renderTiros();renderMuscObs();renderSwims();renderSwimInfo();renderNutriResumo();renderPlano();renderFoodLogList();renderWeightList();}
 
 /* ---------- week ring + lanes ---------- */
 function weekSlots(){const s=[];DOW_ORDER.forEach(dn=>{const c=WEEK[dn];if(c.musc)s.push(dn+'-musc');if(c.run)s.push(dn+'-run');if(c.swim)s.push(dn+'-swim');});return s;}
@@ -872,14 +1051,142 @@ function renderSwims(){
   }).join('');
 }
 
+/* ---------- NUTRIÇÃO (aluno) ---------- */
+function goNutri(v){
+  ['resumo','plano','registrar','peso'].forEach(x=>document.getElementById('nutri-'+x).classList.toggle('hide',x!==v));
+  document.querySelectorAll('#nutriChips .chip').forEach(c=>c.classList.toggle('active',c.dataset.v===v));
+}
+function todaysTotals(){
+  const today=todayKey();
+  const t={kcal:0,proteina:0,carbo:0,gordura:0};
+  (N.food_log||[]).filter(e=>e.data===today).forEach(e=>{t.kcal+=e.kcal;t.proteina+=e.proteina;t.carbo+=e.carbo;t.gordura+=e.gordura;});
+  return t;
+}
+function renderNutriResumo(){
+  const a=N.anamnese||{};
+  const t=todaysTotals();
+  const kcalAlvo=a.kcal_alvo||0, protAlvo=a.proteina_g||0, carbAlvo=a.carbo_g||0, gordAlvo=a.gordura_g||0;
+  document.getElementById('nrKcal').textContent=Math.round(t.kcal);
+  document.getElementById('nrKcalAlvo').textContent=kcalAlvo||'–';
+  document.getElementById('nrProtTxt').textContent=Math.round(t.proteina)+' / '+(protAlvo||'–')+' g';
+  document.getElementById('nrCarbTxt').textContent=Math.round(t.carbo)+' / '+(carbAlvo||'–')+' g';
+  document.getElementById('nrFatTxt').textContent=Math.round(t.gordura)+' / '+(gordAlvo||'–')+' g';
+  document.getElementById('nrProtBar').style.width=(protAlvo?Math.min(100,t.proteina/protAlvo*100):0)+'%';
+  document.getElementById('nrCarbBar').style.width=(carbAlvo?Math.min(100,t.carbo/carbAlvo*100):0)+'%';
+  document.getElementById('nrFatBar').style.width=(gordAlvo?Math.min(100,t.gordura/gordAlvo*100):0)+'%';
+  const card=document.getElementById('nrAnamCard');
+  if(!a.peso){ card.innerHTML='<div class="empty">Seu personal ainda não preencheu sua anamnese.</div>'; return; }
+  const imc=a.altura?(a.peso/Math.pow(a.altura/100,2)).toFixed(1):'–';
+  card.innerHTML=`<div class="eyebrow" style="margin-bottom:8px">Anamnese</div>
+    <div class="micro">Peso: <strong>${a.peso} kg</strong> · Altura: <strong>${a.altura||'–'} cm</strong> · IMC: <strong>${imc}</strong></div>
+    <div class="micro" style="margin-top:4px">TMB: <strong>${a.bmr?Math.round(a.bmr):'–'} kcal</strong> · Gasto total estimado: <strong>${a.tdee?Math.round(a.tdee):'–'} kcal</strong></div>`;
+}
+function renderPlano(){
+  const meals=(N.meal_plan&&N.meal_plan.meals)||[];
+  const el=document.getElementById('planoList');
+  if(!meals.length){el.innerHTML='<div class="empty">Nenhum plano alimentar cadastrado ainda. Fale com seu personal.</div>';return;}
+  el.innerHTML=meals.map(m=>{
+    let kcal=0,p=0,c=0,g=0;
+    (m.items||[]).forEach(it=>{kcal+=it.kcal100*it.qtd_g/100;p+=it.proteina100*it.qtd_g/100;c+=it.carbo100*it.qtd_g/100;g+=it.gordura100*it.qtd_g/100;});
+    const items=(m.items||[]).map(it=>`<div class="fooditem"><div class="fi-nm">${it.nome}</div><div class="fi-meta">${it.qtd_g}g · ${Math.round(it.kcal100*it.qtd_g/100)} kcal</div></div>`).join('') || '<div class="empty" style="padding:8px 0">Sem itens.</div>';
+    return `<div class="mealcard"><div class="mhead"><h3>${m.nome}${m.horario?' · '+m.horario:''}</h3><span class="mkcal">${Math.round(kcal)} kcal</span></div>${items}
+      <div class="micro" style="margin-top:6px">P${p.toFixed(1)}g · C${c.toFixed(1)}g · G${g.toFixed(1)}g</div></div>`;
+  }).join('');
+}
+let flSelectedFood=null;
+function searchFoods(q){
+  const box=document.getElementById('flResults');
+  flSelectedFood=null;
+  if(!q||q.trim().length<2){box.classList.add('hide');box.innerHTML='';return;}
+  const ql=normStr(q);
+  const matches=FOODS.filter(f=>normStr(f.nome).includes(ql)).slice(0,8);
+  if(!matches.length){box.classList.add('hide');box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>';box.classList.remove('hide');return;}
+  box.innerHTML=matches.map(f=>`<div class="fr-item" onclick="pickFood(${f.id})"><div class="fr-nm">${f.nome}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`).join('');
+  box.classList.remove('hide');
+}
+function pickFood(id){
+  flSelectedFood=FOODS.find(f=>f.id===id);
+  if(!flSelectedFood)return;
+  document.getElementById('flBusca').value=flSelectedFood.nome;
+  document.getElementById('flResults').classList.add('hide');
+  const el=document.getElementById('flSelected');
+  el.classList.remove('hide');
+  el.textContent=`${flSelectedFood.kcal} kcal · P${flSelectedFood.proteina}g · C${flSelectedFood.carbo}g · G${flSelectedFood.gordura}g por 100g`;
+}
+function addFoodLog(){
+  if(!flSelectedFood){toast('Busque e selecione um alimento');return;}
+  const qtd=+document.getElementById('flQtd').value;
+  if(!qtd){toast('Informe a quantidade');return;}
+  const data=document.getElementById('flData').value || todayKey();
+  const f=flSelectedFood;
+  const entry={data,refeicao:document.getElementById('flRefeicao').value,food_id:f.id,nome:f.nome,
+    kcal:Math.round(f.kcal*qtd/100), proteina:+(f.proteina*qtd/100).toFixed(1), carbo:+(f.carbo*qtd/100).toFixed(1), gordura:+(f.gordura*qtd/100).toFixed(1), qtd_g:qtd};
+  N.food_log.unshift(entry);
+  saveNutriField('food_log',N.food_log);
+  document.getElementById('flBusca').value='';document.getElementById('flQtd').value='';
+  document.getElementById('flSelected').classList.add('hide');
+  flSelectedFood=null;
+  renderFoodLogList();renderNutriResumo();
+  toast('Alimento registrado ✓');
+}
+function removeFoodLog(i){
+  N.food_log.splice(i,1);
+  saveNutriField('food_log',N.food_log);
+  renderFoodLogList();renderNutriResumo();
+  toast('Removido');
+}
+function renderFoodLogList(){
+  const today=todayKey();
+  const todays=(N.food_log||[]).filter(e=>e.data===today);
+  const el=document.getElementById('foodLogList');
+  if(!todays.length){el.innerHTML='<div class="empty">Nada registrado ainda hoje.</div>';return;}
+  el.innerHTML=todays.map(e=>{
+    const i=N.food_log.indexOf(e);
+    return `<div class="fooditem"><div><div class="fi-nm">${e.nome}</div><div class="fi-meta">${e.refeicao} · ${e.qtd_g}g · ${e.kcal} kcal</div></div><button class="rmx" style="width:26px;height:26px" onclick="removeFoodLog(${i})">×</button></div>`;
+  }).join('');
+}
+function addWeight(){
+  const data=document.getElementById('wData').value;
+  const peso=+document.getElementById('wPeso').value;
+  if(!data||!peso){toast('Preencha data e peso');return;}
+  N.weight_log.unshift({data,peso});
+  saveNutriField('weight_log',N.weight_log);
+  document.getElementById('wPeso').value='';
+  renderWeightList();
+  toast('Peso registrado ✓');
+}
+function renderWeightList(){
+  const el=document.getElementById('weightList');
+  if(!(N.weight_log||[]).length){el.innerHTML='<div class="empty">Nenhum peso registrado ainda.</div>';renderWeightSpark();return;}
+  el.innerHTML=N.weight_log.slice(0,15).map(w=>{
+    const dt=new Date(w.data+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
+    return `<div class="runrow"><div class="run-body"><div class="rt">${w.peso} kg</div><div class="rd">${dt}</div></div></div>`;
+  }).join('');
+  renderWeightSpark();
+}
+function renderWeightSpark(){
+  const pts=[...(N.weight_log||[])].reverse().map(w=>w.peso);
+  const svg=document.getElementById('weightSpark');
+  if(pts.length<2){svg.innerHTML='';return;}
+  const W=300,H=70,pad=8;
+  const mn=Math.min(...pts),mx=Math.max(...pts),rng=(mx-mn)||1;
+  const xs=i=>pad+i*(W-2*pad)/(pts.length-1);
+  const ys=v=>H-pad-((v-mn)/rng)*(H-2*pad-12);
+  let d='',dots='';
+  pts.forEach((v,i)=>{const x=xs(i),y=ys(v);d+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';dots+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#E0A22A"/>`;});
+  svg.innerHTML=`<path d="${d}" fill="none" stroke="#E0A22A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
+}
+
 /* ---------- PERSONAL (treinador) ---------- */
 let pAlunos=[], pCurrentAluno=null, pCurrentRow=null, pPlan=null;
+let pNutriRow=null, pNutri=null;
 
 async function openAlunoList(){
   document.getElementById('pEditView').classList.add('hide');
   document.getElementById('pListView').classList.remove('hide');
   document.getElementById('pTitle').textContent='Alunos';
   document.getElementById('pSub').textContent='Toque em um aluno para editar o treino';
+  await loadFoods();
   const { data, error } = await sb.from('profiles').select('id,email').eq('role','aluno').order('email');
   const card = document.getElementById('alunoListCard');
   if (error) { card.innerHTML='<div class="empty">Erro ao carregar alunos.</div>'; return; }
@@ -893,14 +1200,25 @@ async function selectAluno(id){
   pCurrentRow = data || null;
   pPlan = (data && data.plan) ? JSON.parse(JSON.stringify(data.plan)) : { week:{}, ombro:null, mob:null };
   if (!pPlan.week) pPlan.week = {};
+  const { data: ndata } = await sb.from('nutrition_data').select('*').eq('user_id', id).maybeSingle();
+  pNutriRow = ndata || null;
+  pNutri = ndata ? { anamnese: JSON.parse(JSON.stringify(ndata.anamnese||{})), meal_plan: JSON.parse(JSON.stringify(ndata.meal_plan||{})) } : { anamnese:{}, meal_plan:{} };
+  if (!pNutri.meal_plan.meals) pNutri.meal_plan.meals = [];
   document.getElementById('pTitle').textContent = pCurrentAluno.email;
-  document.getElementById('pSub').textContent = 'Editando o plano de treino';
+  document.getElementById('pSub').textContent = 'Editando o plano do aluno';
   document.getElementById('pListView').classList.add('hide');
   document.getElementById('pEditView').classList.remove('hide');
   renderPlanEditor();
+  renderNutritionEditor();
+  goPersonalTab('treino');
   window.scrollTo({top:0});
 }
 function backToList(){ openAlunoList(); }
+function goPersonalTab(tab){
+  document.getElementById('pTab-treino').classList.toggle('hide',tab!=='treino');
+  document.getElementById('pTab-nutricao').classList.toggle('hide',tab!=='nutricao');
+  document.querySelectorAll('#pEditView .chips .chip').forEach(c=>c.classList.toggle('active',c.dataset.v===tab));
+}
 
 function pDay(dn){
   if (!pPlan.week[dn]) pPlan.week[dn] = JSON.parse(JSON.stringify(DEFAULT_WEEK[dn]));
@@ -1028,9 +1346,126 @@ async function savePlan(){
   toast('Plano salvo ✓');
 }
 
+/* ---------- NUTRIÇÃO (personal) ---------- */
+const NUM_FIELDS=['peso','altura','idade','bf','kcal_alvo','proteina_g','carbo_g','gordura_g'];
+function setAnam(field,v){
+  if (!pNutri.anamnese) pNutri.anamnese={};
+  pNutri.anamnese[field] = NUM_FIELDS.includes(field) ? (v===''?null:+v) : v;
+}
+function calcularMetas(){
+  const a=pNutri.anamnese||{};
+  const peso=a.peso, altura=a.altura, idade=a.idade, sexo=a.sexo||'M', atividade=+(a.atividade||1.55), objetivo=a.objetivo||'manutencao';
+  if (!peso || !altura || !idade) { toast('Preencha peso, altura e idade'); return; }
+  const bmr = sexo==='F' ? (10*peso+6.25*altura-5*idade-161) : (10*peso+6.25*altura-5*idade+5);
+  const tdee = bmr*atividade;
+  let kcalAlvo = tdee;
+  if (objetivo==='emagrecimento') kcalAlvo = tdee*0.8;
+  else if (objetivo==='hipertrofia') kcalAlvo = tdee*1.1;
+  const proteinaG = peso*2;
+  const gorduraG = peso*0.8;
+  const carboG = Math.max(0,(kcalAlvo - proteinaG*4 - gorduraG*9)/4);
+  a.bmr=Math.round(bmr); a.tdee=Math.round(tdee);
+  a.kcal_alvo=Math.round(kcalAlvo); a.proteina_g=Math.round(proteinaG); a.carbo_g=Math.round(carboG); a.gordura_g=Math.round(gorduraG);
+  pNutri.anamnese=a;
+  document.getElementById('anKcal').value=a.kcal_alvo;
+  document.getElementById('anProt').value=a.proteina_g;
+  document.getElementById('anCarb').value=a.carbo_g;
+  document.getElementById('anGord').value=a.gordura_g;
+  const imc=(peso/Math.pow(altura/100,2)).toFixed(1);
+  document.getElementById('anamResultado').innerHTML=`TMB: <strong>${a.bmr} kcal</strong> · Gasto total: <strong>${a.tdee} kcal</strong> · IMC: <strong>${imc}</strong>`;
+  toast('Metas calculadas ✓');
+}
+function renderNutritionEditor(){
+  const a=pNutri.anamnese||{};
+  document.getElementById('anPeso').value=a.peso||'';
+  document.getElementById('anAltura').value=a.altura||'';
+  document.getElementById('anIdade').value=a.idade||'';
+  document.getElementById('anSexo').value=a.sexo||'M';
+  document.getElementById('anAtividade').value=a.atividade||'1.55';
+  document.getElementById('anObjetivo').value=a.objetivo||'manutencao';
+  document.getElementById('anBf').value=a.bf||'';
+  document.getElementById('anKcal').value=a.kcal_alvo||'';
+  document.getElementById('anProt').value=a.proteina_g||'';
+  document.getElementById('anCarb').value=a.carbo_g||'';
+  document.getElementById('anGord').value=a.gordura_g||'';
+  document.getElementById('anamResultado').innerHTML = a.bmr ? `TMB: <strong>${a.bmr} kcal</strong> · Gasto total: <strong>${a.tdee} kcal</strong>` : '';
+  renderMealsEdit();
+}
+function mealTotals(m){
+  let kcal=0; (m.items||[]).forEach(it=>kcal+=it.kcal100*it.qtd_g/100);
+  return {kcal:Math.round(kcal)};
+}
+function renderMealsEdit(){
+  const meals = pNutri.meal_plan.meals || (pNutri.meal_plan.meals=[]);
+  document.getElementById('planMealsEdit').innerHTML = meals.length ? meals.map((m,mi)=>{
+    const tot=mealTotals(m);
+    return `<div class="mealcard">
+      <div class="mhead">
+        <input type="text" value="${m.nome}" placeholder="Nome da refeição" style="border:0;font-size:15px;font-weight:800;font-family:inherit;flex:1;background:transparent;padding:0" oninput="setMealField(${mi},'nome',this.value)">
+        <span class="mkcal">${tot.kcal} kcal</span>
+      </div>
+      <div class="field" style="margin-bottom:8px"><input type="time" value="${m.horario||''}" oninput="setMealField(${mi},'horario',this.value)"></div>
+      <div id="mealItems-${mi}">${renderMealItems(mi,m)}</div>
+      <div class="foodsearch" style="margin-top:8px">
+        <input type="text" placeholder="Buscar alimento para adicionar..." autocomplete="off" oninput="searchMealFood(${mi},this.value)">
+        <div id="mealResults-${mi}" class="foodresults hide"></div>
+      </div>
+      <button class="rmx" style="width:auto;padding:6px 12px;margin-top:10px;font-size:12px" onclick="removeMeal(${mi})">Remover refeição</button>
+    </div>`;
+  }).join('') : '<div class="empty">Nenhuma refeição ainda.</div>';
+}
+function renderMealItems(mi,m){
+  return (m.items||[]).map((it,ii)=>`<div class="fooditem">
+    <div><div class="fi-nm">${it.nome}</div><div class="fi-meta">${Math.round(it.kcal100*it.qtd_g/100)} kcal · P${(it.proteina100*it.qtd_g/100).toFixed(1)} C${(it.carbo100*it.qtd_g/100).toFixed(1)} G${(it.gordura100*it.qtd_g/100).toFixed(1)}</div></div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <input type="number" value="${it.qtd_g}" style="width:60px;border:1.5px solid var(--line);border-radius:8px;padding:5px;text-align:center;font-size:12px" oninput="setMealItemQty(${mi},${ii},this.value)">
+      <span style="font-size:11px;color:var(--muted)">g</span>
+      <button class="rmx" style="width:26px;height:26px" onclick="removeMealItem(${mi},${ii})">×</button>
+    </div></div>`).join('');
+}
+function setMealField(mi,field,v){ pNutri.meal_plan.meals[mi][field]=v; }
+function addMeal(){
+  if (!pNutri.meal_plan.meals) pNutri.meal_plan.meals=[];
+  pNutri.meal_plan.meals.push({nome:'Nova refeição',horario:'',items:[]});
+  renderMealsEdit();
+}
+function removeMeal(mi){ pNutri.meal_plan.meals.splice(mi,1); renderMealsEdit(); }
+function searchMealFood(mi,q){
+  const box=document.getElementById('mealResults-'+mi);
+  if (!q || q.trim().length<2) { box.classList.add('hide'); box.innerHTML=''; return; }
+  const ql=normStr(q);
+  const matches=FOODS.filter(f=>normStr(f.nome).includes(ql)).slice(0,8);
+  if (!matches.length) { box.innerHTML='<div class="fr-item">Nenhum alimento encontrado</div>'; box.classList.remove('hide'); return; }
+  box.innerHTML=matches.map(f=>`<div class="fr-item" onclick="pickMealFood(${mi},${f.id})"><div class="fr-nm">${f.nome}</div><div class="fr-meta">${f.kcal} kcal/100g · ${f.grupo||''}</div></div>`).join('');
+  box.classList.remove('hide');
+}
+function pickMealFood(mi,foodId){
+  const f=FOODS.find(x=>x.id===foodId);
+  if (!f) return;
+  if (!pNutri.meal_plan.meals[mi].items) pNutri.meal_plan.meals[mi].items=[];
+  pNutri.meal_plan.meals[mi].items.push({food_id:f.id,nome:f.nome,kcal100:f.kcal,proteina100:f.proteina,carbo100:f.carbo,gordura100:f.gordura,qtd_g:100});
+  renderMealsEdit();
+}
+function setMealItemQty(mi,ii,v){
+  pNutri.meal_plan.meals[mi].items[ii].qtd_g = +v || 0;
+  renderMealsEdit();
+}
+function removeMealItem(mi,ii){ pNutri.meal_plan.meals[mi].items.splice(ii,1); renderMealsEdit(); }
+async function saveNutritionPlan(){
+  if (!pCurrentAluno) return;
+  const uid = pCurrentAluno.id;
+  const payload = { anamnese: pNutri.anamnese, meal_plan: pNutri.meal_plan };
+  if (pNutriRow) {
+    await sb.from('nutrition_data').update({ ...payload, updated_at:new Date().toISOString() }).eq('user_id', uid);
+  } else {
+    await sb.from('nutrition_data').insert({ user_id: uid, ...payload });
+  }
+  toast('Plano alimentar salvo ✓');
+}
+
 /* ---------- nav ---------- */
 function go(tab){
-  ['hoje','treino','corrida','natacao','recup'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hide',t!==tab));
+  ['hoje','treino','corrida','natacao','recup','nutricao'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('hide',t!==tab));
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
   window.scrollTo({top:0});
 }
